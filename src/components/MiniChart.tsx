@@ -52,3 +52,43 @@ export const MiniDoughnut = ({ percentage }: DoughnutChartProps) => {
     </svg>
   );
 };
+
+interface SparkBarProps {
+  data: number[];
+}
+
+export const SparkBar = ({ data }: SparkBarProps) => {
+  const width = 80;
+  const height = 14;
+  const barWidth = width / data.length;
+  const maxValue = Math.max(...data);
+  const minValue = Math.min(...data);
+  const range = maxValue - minValue;
+
+  return (
+    <svg width={width} height={height} className="rounded-sm">
+      {data.map((value, index) => {
+        const normalizedValue = range > 0 ? (value - minValue) / range : 0.5;
+        const barHeight = Math.max(2, height * normalizedValue);
+        const y = height - barHeight;
+        
+        // Color transition from grey to green
+        const greyAmount = (1 - normalizedValue) * 100;
+        const greenAmount = normalizedValue * 100;
+        const color = `hsl(120, ${greenAmount}%, ${50 + greyAmount * 0.3}%)`;
+        
+        return (
+          <rect
+            key={index}
+            x={index * barWidth}
+            y={y}
+            width={barWidth - 0.5}
+            height={barHeight}
+            fill={color}
+            className="transition-all duration-300"
+          />
+        );
+      })}
+    </svg>
+  );
+};

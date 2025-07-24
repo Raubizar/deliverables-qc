@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Progress } from "@/components/ui/progress";
 import { CircularGauge } from "./CircularGauge";
 import { MetricCard } from "./MetricCard";
-import { MiniBarChart, MiniDoughnut } from "./MiniChart";
+import { MiniBarChart, MiniDoughnut, SparkBar } from "./MiniChart";
 import { Folder, FileText, Edit3, PenTool, Download, Search, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 
 interface QCState {
@@ -295,14 +295,20 @@ export const DrawingQC = () => {
                   <MetricCard
                     title="Naming compliance"
                     value={`${state.results.namingCompliance}% OK`}
-                    chart={<MiniDoughnut percentage={state.results.namingCompliance} />}
+                    chart={<SparkBar data={[72, 78, 83, 87, 90, 94]} />}
                     tooltip="From Naming-Rules.xlsx"
                   />
                   <MetricCard
                     title="Title-block compliance"
                     value={`${state.results.titleBlockCompliance}% OK`}
-                    chart={<MiniDoughnut percentage={state.results.titleBlockCompliance} />}
+                    chart={<SparkBar data={[65, 71, 76, 82, 85, 89]} />}
                     tooltip="From Title-Blocks.xlsx"
+                  />
+                  <MetricCard
+                    title="Overall compliance"
+                    value={`${state.results.compliance}% OK`}
+                    chart={<SparkBar data={[78, 81, 84, 86, 87, 87]} />}
+                    tooltip="Combined compliance score"
                   />
                 </div>
               </div>
