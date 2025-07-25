@@ -57,96 +57,6 @@ export function useValidationRunner(): UseValidationRunnerReturn {
     }));
   }, []);
 
-  const runMockValidation = useCallback(async () => {
-    updateProgress(10, 'Generating mock data...');
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    updateProgress(30, 'Mock validation in progress...');
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    updateProgress(60, 'Creating mock results...');
-    await new Promise(resolve => setTimeout(resolve, 600));
-
-    updateProgress(90, 'Finalizing mock results...');
-    await new Promise(resolve => setTimeout(resolve, 400));
-
-    // Create mock validation results
-    const mockResults: ValidationResults = {
-      overallCompliance: 87,
-      totalFiles: 245,
-      naming: {
-        totalFiles: 245,
-        validFiles: 230,
-        invalidFiles: 15,
-        compliancePercentage: 94,
-        errors: [
-          {
-            fileName: 'beam_detail.pdf',
-            folderPath: '/project/structural',
-            isValid: false,
-            errorType: 'INVALID_PATTERN',
-            details: 'Missing revision code, case mismatch',
-            expectedPattern: 'STR-XXX-Rev-X.pdf'
-          },
-          {
-            fileName: 'hvac-layout.pdf',
-            folderPath: '/project/mechanical',
-            isValid: false,
-            errorType: 'INVALID_PATTERN',
-            details: 'Should be uppercase',
-            expectedPattern: 'MEP-XXX-Rev-X.pdf'
-          }
-        ]
-      },
-      missingFiles: {
-        totalExpected: 253,
-        totalFound: 245,
-        missingCount: 8,
-        missingPercentage: 3.2,
-        missingFiles: [
-          {
-            expectedFile: 'DWG-001-Rev-A.pdf',
-            found: false,
-            registerRow: 15,
-            actualPath: undefined
-          },
-          {
-            expectedFile: 'DWG-002-Rev-B.pdf',
-            found: false,
-            registerRow: 32,
-            actualPath: undefined
-          }
-        ],
-        extraFiles: []
-      },
-      titleBlock: {
-        totalSheets: 245,
-        validSheets: 218,
-        invalidSheets: 27,
-        compliancePercentage: 89,
-        results: [
-          {
-            sheetNo: 'S-001',
-            sheetName: 'Foundation Plan',
-            fileName: 'foundation.pdf',
-            revCode: 'A',
-            revDate: '2024-01-15',
-            status: 'VALID',
-            mismatches: []
-          }
-        ]
-      }
-    };
-
-    setState({
-      isRunning: false,
-      progress: 100,
-      currentStep: 'Mock validation complete!',
-      results: mockResults,
-      error: null
-    });
-  }, [updateProgress]);
-
   const runValidation = useCallback(async (inputs: ValidationInputs) => {
     try {
       setState({
@@ -157,7 +67,7 @@ export function useValidationRunner(): UseValidationRunnerReturn {
         error: null
       });
 
-      // Enhanced validation with better error handling
+      // Require minimum inputs for validation
       console.log('=== VALIDATION RUNNER START ===');
       console.log('Validation inputs received:', {
         hasFolder: !!inputs.folder,
@@ -170,27 +80,12 @@ export function useValidationRunner(): UseValidationRunnerReturn {
         titleBlockFileName: inputs.titleBlockFile?.name
       });
 
-      // Check for debug mode (force real validation)
-      const isDebugMode = window.location.search.includes('debug=true') || window.location.hash.includes('debug');
-      console.log('Debug mode:', isDebugMode);
-
-      // Check if we have minimum requirements for real validation
-      const hasRequiredInputs = inputs.folder && inputs.registerFile;
-      
-      if (!hasRequiredInputs && !isDebugMode) {
-        console.log('❌ Missing required inputs - running mock validation');
-        console.log('Required: folder and register file');
-        console.log('Or add ?debug=true to URL to force real validation');
-        await runMockValidation();
-        return;
+      // Require folder and at least one file for real validation
+      if (!inputs.folder || !inputs.registerFile) {
+        throw new Error('Folder and register file are required for validation. Please select both to proceed.');
       }
 
-      if (!hasRequiredInputs && isDebugMode) {
-        console.log('⚠ Debug mode: forcing real validation even without proper inputs');
-      }
-
-      // If we have partial files, we can still run some validations
-      console.log('✅ Running real validation with available inputs...');
+      console.log('✅ Running real validation...');
 
       updateProgress(10, 'Reading Excel files...');
       const excelPromises = [];
@@ -231,37 +126,15 @@ export function useValidationRunner(): UseValidationRunnerReturn {
       const titleBlockSheet = titleBlockExcel?.sheets[0]?.data || [];
 
       updateProgress(30, 'Scanning directory...');
-      let files = [];
-      
-      if (inputs.folder) {
-        try {
-          console.log('📁 Starting directory scan...');
-          files = await FileSystemUtil.traverseDirectory(inputs.folder, {
-            includeSubfolders: inputs.includeSubfolders,
-            progressCallback: (processed, total) => {
-              const pct = 30 + Math.round((processed / total) * 20);
-              updateProgress(pct, `Scanning directory... (${processed}/${total})`);
-            }
-          });
-          console.log(`✅ Directory scan complete. Found ${files.length} files`);
-        } catch (dirError) {
-          console.error('❌ Directory scan failed:', dirError);
-          // If directory scan fails, use mock file list for demo
-          console.log('🔄 Falling back to mock file list for demo');
-          files = [
-            { name: 'DWG-001-Rev-A.pdf', path: 'DWG-001-Rev-A.pdf', size: 1024, lastModified: new Date(), type: 'file' },
-            { name: 'DWG-002-Rev-B.pdf', path: 'DWG-002-Rev-B.pdf', size: 2048, lastModified: new Date(), type: 'file' },
-            { name: 'beam_detail.pdf', path: 'beam_detail.pdf', size: 1536, lastModified: new Date(), type: 'file' }
-          ];
+      console.log('📁 Starting directory scan...');
+      const files = await FileSystemUtil.traverseDirectory(inputs.folder, {
+        includeSubfolders: inputs.includeSubfolders,
+        progressCallback: (processed, total) => {
+          const pct = 30 + Math.round((processed / total) * 20);
+          updateProgress(pct, `Scanning directory... (${processed}/${total})`);
         }
-      } else {
-        console.log('⚠ No folder provided, using mock file list');
-        files = [
-          { name: 'DWG-001-Rev-A.pdf', path: 'DWG-001-Rev-A.pdf', size: 1024, lastModified: new Date(), type: 'file' },
-          { name: 'DWG-002-Rev-B.pdf', path: 'DWG-002-Rev-B.pdf', size: 2048, lastModified: new Date(), type: 'file' },
-          { name: 'beam_detail.pdf', path: 'beam_detail.pdf', size: 1536, lastModified: new Date(), type: 'file' }
-        ];
-      }
+      });
+      console.log(`✅ Directory scan complete. Found ${files.length} files`);
 
       updateProgress(55, 'Running validators...');
       
@@ -361,7 +234,7 @@ export function useValidationRunner(): UseValidationRunnerReturn {
         error: errorMessage
       });
     }
-  }, [runMockValidation]);
+  }, [updateProgress]);
 
   const downloadReport = useCallback(async () => {
     if (!state.results) {

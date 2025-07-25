@@ -110,29 +110,7 @@ export const DrawingQC = () => {
     const files = event.target.files;
     if (files && files.length > 0) {
       console.log('Files selected via fallback method:', Array.from(files).map(f => f.name));
-      
-      // Create a mock folder structure for the selected files
-      const mockFolder = {
-        name: 'Selected Files',
-        kind: 'directory' as const,
-        entries: async function* () {
-          for (const file of files) {
-            yield [file.name, {
-              kind: 'file' as const,
-              name: file.name,
-              getFile: () => Promise.resolve(file)
-            }];
-          }
-        }
-      };
-      
-      setState(prev => ({ 
-        ...prev, 
-        selectedFolder: mockFolder as any,
-        folderName: `${files.length} files selected`
-      }));
-      
-      console.log('Mock folder created for fallback files');
+      alert('File fallback method selected. Please use the folder selection for full functionality.');
     }
   };
 
@@ -210,46 +188,6 @@ Please use Chrome/Edge with HTTPS or localhost.`);
       await downloadReport();
     } catch (error) {
       console.error('Error downloading report:', error);
-    }
-  };
-
-  const handleTestWithMockData = async () => {
-    console.log('🧪 Testing with mock data (debug mode)');
-    
-    // Create mock file data
-    const mockFile = new File(['Drawing Number,Title,Revision\nDWG-001-Rev-A.pdf,Foundation Plan,A\nDWG-002-Rev-B.pdf,Site Plan,B'], 'mock-register.csv', { type: 'text/csv' });
-    
-    const mockFolder = {
-      name: 'Mock Test Folder',
-      kind: 'directory' as const,
-      entries: async function* () {
-        yield ['DWG-001-Rev-A.pdf', {
-          kind: 'file' as const,
-          name: 'DWG-001-Rev-A.pdf',
-          getFile: () => Promise.resolve(new File(['mock pdf content'], 'DWG-001-Rev-A.pdf', { type: 'application/pdf' }))
-        }];
-        yield ['DWG-002-Rev-B.pdf', {
-          kind: 'file' as const,
-          name: 'DWG-002-Rev-B.pdf',
-          getFile: () => Promise.resolve(new File(['mock pdf content'], 'DWG-002-Rev-B.pdf', { type: 'application/pdf' }))
-        }];
-      }
-    };
-    
-    const inputs: ValidationInputs = {
-      folder: mockFolder as any,
-      includeSubfolders: true,
-      registerFile: mockFile,
-      namingFile: null,
-      titleBlockFile: null,
-    };
-
-    console.log('🚀 Running test validation with mock data...');
-    try {
-      await runValidation(inputs);
-      console.log('✅ Test validation completed');
-    } catch (error) {
-      console.error('❌ Test validation failed:', error);
     }
   };
 
@@ -439,18 +377,6 @@ Please use Chrome/Edge with HTTPS or localhost.`);
               >
                 {validationState.isRunning ? "Processing..." : "Run Checks"}
               </Button>
-              
-              {/* Debug test button */}
-              {window.location.search.includes('debug=true') && (
-                <Button 
-                  onClick={handleTestWithMockData}
-                  variant="outline"
-                  className="w-full mt-2 apple-transition apple-hover"
-                  size="sm"
-                >
-                  🧪 Test with Mock Files (Debug)
-                </Button>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -628,28 +554,7 @@ Please use Chrome/Edge with HTTPS or localhost.`);
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        <TableRow className="bg-destructive/10">
-                          <TableCell>Missing Files</TableCell>
-                          <TableCell className="font-medium">DWG-001-Rev-A.pdf</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <XCircle className="h-4 w-4 text-destructive" />
-                              <span>Fail</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>File not found in directory</TableCell>
-                        </TableRow>
-                        <TableRow className="bg-destructive/10">
-                          <TableCell>Naming</TableCell>
-                          <TableCell className="font-medium">beam_detail.pdf</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <XCircle className="h-4 w-4 text-destructive" />
-                              <span>Fail</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>Missing revision code in filename</TableCell>
-                        </TableRow>
+                        {/* Real data will be populated dynamically */}
                       </TableBody>
                     </Table>
                   </div>
