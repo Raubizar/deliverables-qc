@@ -42,7 +42,7 @@ export const DrawingQC = () => {
   }, [validationState]);
 
   // For testing, allow running checks without all files (will use mock data)
-  const canRunChecks = true; // Always allow running for demo purposes
+  const canRunChecks = state.selectedFolder && state.registerFile && state.namingRulesFile && state.titleBlocksFile;
 
   const handleRunChecks = async () => {
     console.log('handleRunChecks called');
@@ -228,16 +228,6 @@ export const DrawingQC = () => {
                     className="w-full apple-transition apple-hover"
                   >
                     Choose Folder
-                  </Button>
-                </div>
-                <div className="col-span-1">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={testFileSystemAPI}
-                    className="apple-transition apple-hover"
-                  >
-                    Test
                   </Button>
                 </div>
               </div>
