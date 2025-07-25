@@ -106,14 +106,6 @@ export const DrawingQC = () => {
       }
     };
 
-  const handleFilesFallback = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      console.log('Files selected via fallback method:', Array.from(files).map(f => f.name));
-      alert('File fallback method selected. Please use the folder selection for full functionality.');
-    }
-  };
-
   const handleFolderSelect = async () => {
     try {
       console.log('=== FOLDER SELECTION START ===');
@@ -216,7 +208,7 @@ Please use Chrome/Edge with HTTPS or localhost.`);
     <div className="min-h-screen bg-background">
       {/* Header with blur effect */}
       <header className="sticky top-0 z-50 bg-background/80 apple-blur border-b border-border">
-        <div className="max-w-4xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <h1 className="text-2xl font-semibold text-center text-foreground">Drawing QC</h1>
           {validationState.isRunning && (
             <div className="mt-3">
@@ -229,7 +221,7 @@ Please use Chrome/Edge with HTTPS or localhost.`);
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+      <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {/* Inputs Card */}
         <Card className="apple-shadow fade-slide-in">
           <CardHeader>
@@ -256,7 +248,7 @@ Please use Chrome/Edge with HTTPS or localhost.`);
                     </div>
                   )}
                 </div>
-                <div className="col-span-3 grid grid-cols-2 gap-2">
+                <div className="col-span-3">
                   <Button 
                     variant="outline" 
                     onClick={handleFolderSelect}
@@ -264,24 +256,6 @@ Please use Chrome/Edge with HTTPS or localhost.`);
                   >
                     Choose Folder
                   </Button>
-                  {!state.selectedFolder && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      <input
-                        type="file"
-                        multiple
-                        accept=".pdf,.dwg,.png,.jpg"
-                        onChange={handleFilesFallback}
-                        style={{ display: 'none' }}
-                        id="files-fallback"
-                      />
-                      <label 
-                        htmlFor="files-fallback" 
-                        className="cursor-pointer text-blue-600 hover:underline"
-                      >
-                        Or select files
-                      </label>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -450,89 +424,185 @@ Please use Chrome/Edge with HTTPS or localhost.`);
               </div>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="missing" className="w-full">
+              {/* Search and Tabs */}
+              <div className="mb-4 flex justify-between items-center">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search results..."
+                    value={searchFilter}
+                    onChange={(e) => setSearchFilter(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <Tabs defaultValue="all" className="w-full">
                 <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="missing">Missing Files</TabsTrigger>
-                  <TabsTrigger value="naming">Naming Errors</TabsTrigger>
+                  <TabsTrigger value="all">Validation Report</TabsTrigger>
+                  <TabsTrigger value="missing">Check Drawing List</TabsTrigger>
+                  <TabsTrigger value="naming">Naming Checker</TabsTrigger>
                   <TabsTrigger value="titleblock">Title-Block Errors</TabsTrigger>
-                  <TabsTrigger value="all">All Findings</TabsTrigger>
                 </TabsList>
                 
+                <TabsContent value="all" className="mt-6">
+                  <div className="rounded-md border overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="sticky top-0 bg-background min-w-[100px]">Sheet Number</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[150px]">Sheet Name</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[200px]">File Name</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[100px]">Revision Code</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[120px]">Revision Date</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[150px]">Revision Description</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[120px]">Suitability Code</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[150px]">Stage Description</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[160px]">Naming Convention Status</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[140px]">File Delivery Status</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[150px]">Comments</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[100px]">Result</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[180px]">Mismatched Items</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filterResults(validationState.results.titleBlock.results, searchFilter).map((result, index) => {
+                          // Find if this file has naming issues
+                          const namingError = validationState.results.naming.errors.find(
+                            err => err.fileName === result.fileName
+                          );
+                          
+                          // Check if this file is missing
+                          const isMissing = validationState.results.missingFiles.missingFiles.some(
+                            missing => missing.expectedFile === result.fileName
+                          );
+                          
+                          // Determine overall result
+                          const hasNamingIssue = namingError !== undefined;
+                          const hasValidationIssue = result.status !== 'VALID';
+                          const overallResult = isMissing ? 'Missing' : 
+                                              hasNamingIssue || hasValidationIssue ? 'Issues Found' : 'OK';
+                          
+                          // Build mismatched items list
+                          const mismatchedItems = [];
+                          if (hasNamingIssue) mismatchedItems.push(`Naming: ${namingError.errorType}`);
+                          if (hasValidationIssue) mismatchedItems.push('Title Block validation failed');
+                          if (isMissing) mismatchedItems.push('File not found');
+                          
+                          return (
+                            <TableRow key={index} className={isMissing ? 'bg-destructive/10' : hasNamingIssue || hasValidationIssue ? 'bg-orange-50' : ''}>
+                              <TableCell className="text-sm">{result.sheetNo}</TableCell>
+                              <TableCell className="font-medium text-sm">{result.sheetName}</TableCell>
+                              <TableCell className="text-sm break-all">{result.fileName}</TableCell>
+                              <TableCell className="text-sm">{result.revCode}</TableCell>
+                              <TableCell className="text-sm">{result.revDate}</TableCell>
+                              <TableCell className="text-sm">{result.revDescription || '-'}</TableCell>
+                              <TableCell className="text-sm">{result.suitabilityCode || '-'}</TableCell>
+                              <TableCell className="text-sm">{result.stageDescription || '-'}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  {hasNamingIssue ? (
+                                    <>
+                                      <XCircle className="h-4 w-4 text-destructive" />
+                                      <span>Non-compliant</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircle className="h-4 w-4 text-green-600" />
+                                      <span>Compliant</span>
+                                    </>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  {isMissing ? (
+                                    <>
+                                      <XCircle className="h-4 w-4 text-destructive" />
+                                      <span>Not Found</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircle className="h-4 w-4 text-green-600" />
+                                      <span>Found</span>
+                                    </>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Input 
+                                  type="text" 
+                                  placeholder="Add comments..." 
+                                  className="w-full text-xs"
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  {getStatusIcon(overallResult === 'OK' ? 'valid' : 'invalid')}
+                                  <span>{overallResult}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>{mismatchedItems.join(', ') || '-'}</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </TabsContent>
+                
                 <TabsContent value="missing" className="mt-6">
-                  <div className="rounded-md border">
+                  <div className="rounded-md border overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="sticky top-0 bg-background">Expected File</TableHead>
-                          <TableHead className="sticky top-0 bg-background">Found?</TableHead>
-                          <TableHead className="sticky top-0 bg-background">Register Row</TableHead>
+                          <TableHead className="sticky top-0 bg-background w-1/2">Excel Drawing Name</TableHead>
+                          <TableHead className="sticky top-0 bg-background w-1/3">Matched File Name</TableHead>
+                          <TableHead className="sticky top-0 bg-background w-1/6">Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filterResults(validationState.results.missingFiles.missingFiles, searchFilter).map((item, index) => (
-                          <TableRow key={index} className="bg-destructive/10">
-                            <TableCell className="font-medium">{item.expectedFile}</TableCell>
-                            <TableCell>
-                              <XCircle className="h-4 w-4 text-destructive" />
-                            </TableCell>
-                            <TableCell>{item.registerRow}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="naming" className="mt-6">
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="sticky top-0 bg-background">Folder Path</TableHead>
-                          <TableHead className="sticky top-0 bg-background">File Name</TableHead>
-                          <TableHead className="sticky top-0 bg-background">Error Type</TableHead>
-                          <TableHead className="sticky top-0 bg-background">Details</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filterResults(validationState.results.naming.errors, searchFilter).map((error, index) => (
-                          <TableRow key={index} className="bg-destructive/10">
-                            <TableCell>{error.folderPath}</TableCell>
-                            <TableCell className="font-medium">{error.fileName}</TableCell>
-                            <TableCell>{error.errorType}</TableCell>
-                            <TableCell>{error.details}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="titleblock" className="mt-6">
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="sticky top-0 bg-background">Sheet No</TableHead>
-                          <TableHead className="sticky top-0 bg-background">Sheet Name</TableHead>
-                          <TableHead className="sticky top-0 bg-background">File Name</TableHead>
-                          <TableHead className="sticky top-0 bg-background">Rev Code</TableHead>
-                          <TableHead className="sticky top-0 bg-background">Rev Date</TableHead>
-                          <TableHead className="sticky top-0 bg-background">Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filterResults(validationState.results.titleBlock.results, searchFilter).map((result, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{result.sheetNo}</TableCell>
-                            <TableCell className="font-medium">{result.sheetName}</TableCell>
-                            <TableCell>{result.fileName}</TableCell>
-                            <TableCell>{result.revCode}</TableCell>
-                            <TableCell>{result.revDate}</TableCell>
+                        {/* Show all expected files from register with their match status */}
+                        {filterResults(validationState.results.titleBlock.results, searchFilter).map((registerEntry, index) => {
+                          // Find if this file was found in the folder
+                          const isMissing = validationState.results.missingFiles.missingFiles.some(
+                            missing => missing.expectedFile === registerEntry.fileName && !missing.found
+                          );
+                          
+                          return (
+                            <TableRow key={index} className={isMissing ? 'bg-orange-50' : 'bg-green-50'}>
+                              <TableCell className="font-medium text-sm break-all">{registerEntry.fileName}</TableCell>
+                              <TableCell className="text-sm break-all">
+                                {isMissing ? 'N/A' : registerEntry.fileName}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  {isMissing ? (
+                                    <>
+                                      <XCircle className="h-4 w-4 text-orange-500" />
+                                      <span className="text-orange-700">To Do</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircle className="h-4 w-4 text-green-600" />
+                                      <span className="text-green-700">Done</span>
+                                    </>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                        
+                        {/* Show extra files found in folder but not in register */}
+                        {filterResults(validationState.results.missingFiles.extraFiles, searchFilter).map((extraFile, index) => (
+                          <TableRow key={`extra-${index}`} className="bg-blue-50">
+                            <TableCell className="text-sm break-all">N/A</TableCell>
+                            <TableCell className="font-medium text-sm break-all">{extraFile.name}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                {getStatusIcon(result.status === 'VALID' ? 'valid' : 'invalid')}
-                                <span>{result.status}</span>
+                                <AlertTriangle className="h-4 w-4 text-blue-500" />
+                                <span className="text-blue-700">File not in Drawing List</span>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -542,19 +612,86 @@ Please use Chrome/Edge with HTTPS or localhost.`);
                   </div>
                 </TabsContent>
 
-                <TabsContent value="all" className="mt-6">
-                  <div className="rounded-md border">
+                <TabsContent value="naming" className="mt-6">
+                  <div className="rounded-md border overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="sticky top-0 bg-background">Check Type</TableHead>
-                          <TableHead className="sticky top-0 bg-background">File Name</TableHead>
-                          <TableHead className="sticky top-0 bg-background">Status</TableHead>
-                          <TableHead className="sticky top-0 bg-background">Comment</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[200px]">Folder Path</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[250px]">File Name</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[150px]">Compliance Status</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[300px]">Details</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {/* Real data will be populated dynamically */}
+                        {/* Show all files with their naming compliance status, not just errors */}
+                        {filterResults(validationState.results.naming.allResults, searchFilter).map((result, index) => {
+                          // Extract folder path without filename
+                          const folderPath = result.folderPath ? 
+                            result.folderPath.split('/').slice(0, -1).join('/') || 'Root' : 
+                            'Root';
+                          
+                          const isCompliant = result.isValid !== false && !result.errorType;
+                          
+                          return (
+                            <TableRow key={index} className={isCompliant ? 'bg-green-50' : 'bg-destructive/10'}>
+                              <TableCell className="text-sm">{folderPath}</TableCell>
+                              <TableCell className="font-medium text-sm break-all">{result.fileName}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  {isCompliant ? (
+                                    <>
+                                      <CheckCircle className="h-4 w-4 text-green-600" />
+                                      <span className="text-green-700 text-sm">Ok</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <XCircle className="h-4 w-4 text-destructive" />
+                                      <span className="text-destructive text-sm">Not Ok</span>
+                                    </>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                {result.details || (isCompliant ? 'Delimiter correct. Number of parts correct.' : result.errorType)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="titleblock" className="mt-6">
+                  <div className="rounded-md border overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="sticky top-0 bg-background min-w-[100px]">Sheet No</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[200px]">Sheet Name</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[250px]">File Name</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[100px]">Rev Code</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[120px]">Rev Date</TableHead>
+                          <TableHead className="sticky top-0 bg-background min-w-[100px]">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filterResults(validationState.results.titleBlock.results, searchFilter).map((result, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="text-sm">{result.sheetNo}</TableCell>
+                            <TableCell className="font-medium text-sm">{result.sheetName}</TableCell>
+                            <TableCell className="text-sm break-all">{result.fileName}</TableCell>
+                            <TableCell className="text-sm">{result.revCode}</TableCell>
+                            <TableCell className="text-sm">{result.revDate}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                {getStatusIcon(result.status === 'VALID' ? 'valid' : 'invalid')}
+                                <span className="text-sm">{result.status}</span>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
                       </TableBody>
                     </Table>
                   </div>

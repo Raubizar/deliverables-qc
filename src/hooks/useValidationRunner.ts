@@ -123,6 +123,10 @@ export function useValidationRunner(): UseValidationRunnerReturn {
         Sheets: namingExcel.sheets.find(s => s.name === 'Sheets')?.data || [],
         Models: namingExcel.sheets.find(s => s.name === 'Models')?.data || []
       } : { Sheets: [], Models: [] };
+      
+      console.log('[ValidationRunner] Naming sheets loaded:');
+      console.log('- Sheets tab:', namingSheets.Sheets);
+      console.log('- Models tab:', namingSheets.Models);
       const titleBlockSheet = titleBlockExcel?.sheets[0]?.data || [];
 
       updateProgress(30, 'Scanning directory...');
@@ -144,7 +148,8 @@ export function useValidationRunner(): UseValidationRunnerReturn {
         validFiles: files.length,
         invalidFiles: 0,
         compliancePercentage: 100,
-        errors: []
+        errors: [],
+        allResults: [] // Add missing property
       };
       
       let missingResults = {

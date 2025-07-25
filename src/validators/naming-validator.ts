@@ -26,6 +26,7 @@ export interface NamingValidationSummary {
   invalidFiles: number;
   compliancePercentage: number;
   errors: NamingValidationResult[];
+  allResults: NamingValidationResult[]; // All files, both valid and invalid
 }
 
 export class NamingValidator {
@@ -35,43 +36,68 @@ export class NamingValidator {
    * Load naming rules from Excel data (expects Sheets and Models tabs)
    */
   public loadRules(sheetsData: any[][], modelsData: any[][]): void {
+    console.log('[NamingValidator] Loading rules:');
+    console.log('- Sheets data:', sheetsData);
+    console.log('- Models data:', modelsData);
+    
     this.namingConvention = {
       Sheets: sheetsData,
       Models: modelsData
     };
+    
+    // Log the delimiter that will be used
+    if (sheetsData.length > 0 && sheetsData[0].length > 3) {
+      console.log('- Sheets delimiter (column D):', sheetsData[0][3]);
+    }
+    if (modelsData.length > 0 && modelsData[0].length > 3) {
+      console.log('- Models delimiter (column D):', modelsData[0][3]);
+    }
   }
 
   /**
    * Validate a single file name against the naming rules
    */
   public validateFileName(fileName: string, folderPath: string = ''): NamingValidationResult {
+    console.log(`[NamingValidator] Validating file: ${fileName}, path: ${folderPath}`);
     const result = this.analyzeFileName(fileName);
+    console.log(`[NamingValidator] Analysis result:`, result);
     
-    return {
+    // For valid files, set standard details message
+    const details = result.compliance === 'Ok' && !result.details 
+      ? 'Delimiter correct. Number of parts correct.'
+      : result.details;
+    
+    const validationResult = {
       fileName,
       folderPath,
       isValid: result.compliance === 'Ok',
       errorType: this.getErrorType(result),
-      details: result.details,
+      details,
       expectedPattern: this.getExpectedPattern(fileName)
     };
+    
+    console.log(`[NamingValidator] Final result:`, validationResult);
+    return validationResult;
   }
 
   /**
    * Validate multiple files
    */
   public validateFiles(files: Array<{ name: string; path: string }>): NamingValidationSummary {
-    const results: NamingValidationResult[] = [];
+    const allResults: NamingValidationResult[] = [];
+    const errors: NamingValidationResult[] = [];
     
     for (const file of files) {
       const result = this.validateFileName(file.name, file.path);
+      allResults.push(result);
+      
       if (!result.isValid) {
-        results.push(result);
+        errors.push(result);
       }
     }
 
-    const validFiles = files.length - results.length;
-    const invalidFiles = results.length;
+    const validFiles = files.length - errors.length;
+    const invalidFiles = errors.length;
     const compliancePercentage = files.length > 0 ? (validFiles / files.length) * 100 : 0;
 
     return {
@@ -79,7 +105,8 @@ export class NamingValidator {
       validFiles,
       invalidFiles,
       compliancePercentage: Math.round(compliancePercentage * 100) / 100,
-      errors: results
+      errors,
+      allResults
     };
   }
 

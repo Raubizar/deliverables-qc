@@ -11,7 +11,9 @@ export interface TitleBlockData {
   fileName: string;
   revCode: string;
   revDate: string;
+  revDescription?: string;
   suitabilityCode?: string;
+  stageDescription?: string;
   [key: string]: any; // Additional fields
 }
 
@@ -21,6 +23,9 @@ export interface TitleBlockValidationResult {
   fileName: string;
   revCode: string;
   revDate: string;
+  revDescription?: string;
+  suitabilityCode?: string;
+  stageDescription?: string;
   status: 'VALID' | 'MISMATCH' | 'MISSING' | 'ERROR';
   mismatches: Array<{
     field: string;
@@ -54,7 +59,9 @@ export class TitleBlockValidator {
       fileName: 2,
       revCode: 3,
       revDate: 4,
-      suitabilityCode: 5
+      revDescription: 5,
+      suitabilityCode: 6,
+      stageDescription: 7
     };
     
     const mapping = columnMapping || defaultMapping;
@@ -69,7 +76,9 @@ export class TitleBlockValidator {
           fileName: DataNormalizer.normalizeText(row[mapping.fileName]),
           revCode: DataNormalizer.normalizeText(row[mapping.revCode]),
           revDate: DataNormalizer.normalizeDate(row[mapping.revDate]),
-          suitabilityCode: DataNormalizer.normalizeText(row[mapping.suitabilityCode])
+          revDescription: DataNormalizer.normalizeText(row[mapping.revDescription]),
+          suitabilityCode: DataNormalizer.normalizeText(row[mapping.suitabilityCode]),
+          stageDescription: DataNormalizer.normalizeText(row[mapping.stageDescription])
         });
       }
     }
@@ -88,7 +97,9 @@ export class TitleBlockValidator {
       fileName: 2,
       revCode: 3,
       revDate: 4,
-      suitabilityCode: 5
+      revDescription: 5,
+      suitabilityCode: 6,
+      stageDescription: 7
     };
     
     const mapping = columnMapping || defaultMapping;
@@ -103,7 +114,9 @@ export class TitleBlockValidator {
           fileName: DataNormalizer.normalizeText(row[mapping.fileName]),
           revCode: DataNormalizer.normalizeText(row[mapping.revCode]),
           revDate: DataNormalizer.normalizeDate(row[mapping.revDate]),
-          suitabilityCode: DataNormalizer.normalizeText(row[mapping.suitabilityCode])
+          revDescription: DataNormalizer.normalizeText(row[mapping.revDescription]),
+          suitabilityCode: DataNormalizer.normalizeText(row[mapping.suitabilityCode]),
+          stageDescription: DataNormalizer.normalizeText(row[mapping.stageDescription])
         });
       }
     }
@@ -126,6 +139,9 @@ export class TitleBlockValidator {
           fileName: registerEntry.fileName,
           revCode: registerEntry.revCode,
           revDate: registerEntry.revDate,
+          revDescription: registerEntry.revDescription,
+          suitabilityCode: registerEntry.suitabilityCode,
+          stageDescription: registerEntry.stageDescription,
           status: 'MISSING',
           mismatches: [{ field: 'titleBlock', expected: 'Present', actual: 'Missing' }]
         });
@@ -167,7 +183,7 @@ export class TitleBlockValidator {
 
     // Compare each field
     const fieldsToCompare: Array<keyof TitleBlockData> = [
-      'sheetName', 'fileName', 'revCode', 'revDate', 'suitabilityCode'
+      'sheetName', 'fileName', 'revCode', 'revDate', 'revDescription', 'suitabilityCode', 'stageDescription'
     ];
 
     for (const field of fieldsToCompare) {
@@ -191,6 +207,9 @@ export class TitleBlockValidator {
       fileName: register.fileName,
       revCode: register.revCode,
       revDate: register.revDate,
+      revDescription: register.revDescription,
+      suitabilityCode: register.suitabilityCode,
+      stageDescription: register.stageDescription,
       status,
       mismatches
     };
