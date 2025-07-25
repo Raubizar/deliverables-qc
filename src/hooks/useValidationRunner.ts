@@ -8,14 +8,12 @@ import {
   NamingValidator,
   MissingFilesValidator,
   TitleBlockValidator,
-  type ValidationResults,
-  type ProgressCallback
+  type ValidationResults
 } from '../validators';
 import {
   ExcelProcessor,
   FileSystemUtil,
-  ReportBuilder,
-  type DirectoryTraversalOptions
+  ReportBuilder
 } from '../utils';
 
 export interface ValidationInputs {
@@ -167,9 +165,71 @@ export function useValidationRunner(): UseValidationRunnerReturn {
         return;
       }
 
-      // Real validation logic would go here...
-      // For now, just run mock validation
-      await runMockValidation();
+      updateProgress(10, 'Reading Excel files...');
+      const [registerExcel, namingExcel, titleBlockExcel] = await Promise.all([
+        ExcelProcessor.readFile(inputs.registerFile!),
+        ExcelProcessor.readFile(inputs.namingFile!),
+        ExcelProcessor.readFile(inputs.titleBlockFile!)
+      ]);
+
+      const registerSheet = registerExcel.sheets[0]?.data || [];
+      const namingSheets = {
+        Sheets: namingExcel.sheets.find(s => s.name === 'Sheets')?.data || [],
+        Models: namingExcel.sheets.find(s => s.name === 'Models')?.data || []
+      };
+      const titleBlockSheet = titleBlockExcel.sheets[0]?.data || [];
+
+      updateProgress(30, 'Scanning directory...');
+      const files = await FileSystemUtil.traverseDirectory(inputs.folder!, {
+        includeSubfolders: inputs.includeSubfolders,
+        progressCallback: (processed, total) => {
+          const pct = 30 + Math.round((processed / total) * 20);
+          updateProgress(pct, 'Scanning directory...');
+        }
+      });
+
+      updateProgress(55, 'Running validators...');
+      const namingValidator = new NamingValidator();
+      namingValidator.loadRules(namingSheets.Sheets, namingSheets.Models);
+      const namingResults = namingValidator.validateFiles(
+        files.map(f => ({ name: f.name, path: f.path }))
+      );
+
+      const missingFilesValidator = new MissingFilesValidator();
+      missingFilesValidator.loadExpectedFiles(registerSheet);
+      missingFilesValidator.loadActualFiles(
+        files.map(f => ({ name: f.name, path: f.path }))
+      );
+      const missingResults = missingFilesValidator.validate();
+
+      const titleBlockValidator = new TitleBlockValidator();
+      titleBlockValidator.loadRegisterData(registerSheet);
+      titleBlockValidator.loadTitleBlockData(titleBlockSheet);
+      const titleBlockResults = titleBlockValidator.validate();
+
+      updateProgress(90, 'Aggregating results...');
+      const filePresenceCompliance = 100 - missingResults.missingPercentage;
+      const overallCompliance = calculateOverallCompliance(
+        namingResults.compliancePercentage,
+        filePresenceCompliance,
+        titleBlockResults.compliancePercentage
+      );
+
+      const results: ValidationResults = {
+        naming: namingResults,
+        missingFiles: missingResults,
+        titleBlock: titleBlockResults,
+        overallCompliance,
+        totalFiles: files.length
+      };
+
+      setState({
+        isRunning: false,
+        progress: 100,
+        currentStep: 'Validation complete',
+        results,
+        error: null
+      });
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
