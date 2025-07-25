@@ -141,32 +141,6 @@ export const DrawingQC = () => {
     }
   };
 
-  const testFileSystemAPI = () => {
-    console.log('=== File System API Test ===');
-    console.log('window object exists:', typeof window !== 'undefined');
-    console.log('showDirectoryPicker exists:', 'showDirectoryPicker' in window);
-    console.log('Is secure context:', window.isSecureContext);
-    console.log('Protocol:', window.location.protocol);
-    console.log('Host:', window.location.host);
-    
-    if ('showDirectoryPicker' in window) {
-      console.log('showDirectoryPicker type:', typeof window.showDirectoryPicker);
-      console.log('Attempting to call showDirectoryPicker...');
-      
-      window.showDirectoryPicker({ mode: 'read' })
-        .then((handle) => {
-          console.log('Success! Directory handle:', handle);
-          alert(`Success! Selected folder: ${handle.name}`);
-        })
-        .catch((error) => {
-          console.error('Error calling showDirectoryPicker:', error);
-          alert(`Error: ${error.message}`);
-        });
-    } else {
-      alert('showDirectoryPicker is not available in this browser');
-    }
-  };
-
   // Filter function for search
   const filterResults = (items: any[], searchTerm: string) => {
     if (!searchTerm) return items;
@@ -221,7 +195,7 @@ export const DrawingQC = () => {
                     </div>
                   )}
                 </div>
-                <div className="col-span-3">
+                <div className="col-span-3 grid grid-cols-2 gap-2">
                   <Button 
                     variant="outline" 
                     onClick={handleFolderSelect}

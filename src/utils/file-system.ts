@@ -50,20 +50,32 @@ export class FileSystemUtil {
    * Open directory picker
    */
   public static async selectDirectory(): Promise<FileSystemDirectoryHandle | null> {
+    console.log('[FileSystemUtil] selectDirectory called');
     if (!this.isFileSystemAccessSupported()) {
-      throw new Error('File System Access API is not supported in this browser');
+      console.error('[FileSystemUtil] File System Access API is not supported.');
+      alert('Error: File System Access API is not available in your browser. Please use a modern browser like Chrome or Edge and ensure you are on a secure (HTTPS) page.');
+      return null;
     }
 
     try {
-      const directoryHandle = await window.showDirectoryPicker({
-        mode: 'read'
-      });
+      console.log('[FileSystemUtil] Calling window.showDirectoryPicker...');
+      const directoryHandle = await window.showDirectoryPicker({ mode: 'read' });
+      console.log('[FileSystemUtil] Successfully received directory handle:', directoryHandle);
       return directoryHandle;
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        return null; // User cancelled
+      console.error('[FileSystemUtil] Error during showDirectoryPicker:', error);
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.log('[FileSystemUtil] User cancelled the folder selection dialog.');
+        } else {
+          console.error(`[FileSystemUtil] Error details: Name: ${error.name}, Message: ${error.message}`);
+          alert(`An error occurred while selecting the directory: ${error.message}`);
+        }
+      } else {
+        console.error('[FileSystemUtil] An unknown error occurred:', error);
+        alert('An unknown error occurred while selecting the directory.');
       }
-      throw error;
+      return null;
     }
   }
 
