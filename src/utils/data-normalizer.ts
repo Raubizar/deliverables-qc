@@ -76,8 +76,9 @@ export class DataNormalizer {
    * Normalize file name for comparison
    */
   public static normalizeFileName(fileName: string): string {
-    // Remove extension and normalize
-    const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+    // Remove extension and normalize. If no extension exists, use full name
+    const lastDot = fileName.lastIndexOf('.');
+    const nameWithoutExt = lastDot === -1 ? fileName : fileName.substring(0, lastDot);
     return this.normalizeText(nameWithoutExt);
   }
 
