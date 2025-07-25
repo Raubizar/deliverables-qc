@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,119 +11,170 @@ import { CircularGauge } from "./CircularGauge";
 import { MetricCard } from "./MetricCard";
 import { MiniBarChart, MiniDoughnut, SparkBar } from "./MiniChart";
 import { Folder, FileText, Edit3, PenTool, Download, Search, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { useValidationRunner, type ValidationInputs } from "../hooks/useValidationRunner";
+import { FileSystemUtil } from "../utils";
 
 interface QCState {
-  selectedFolder: string;
+  selectedFolder: FileSystemDirectoryHandle | null;
+  folderName: string;
   includeSubfolders: boolean;
-  registerFile: string;
-  namingRulesFile: string;
-  titleBlocksFile: string;
-  isProcessing: boolean;
-  hasResults: boolean;
-  results: QCResults | null;
-}
-
-interface QCResults {
-  compliance: number;
-  drawingsScanned: number;
-  missingFiles: number;
-  expectedFiles: number;
-  namingCompliance: number;
-  titleBlockCompliance: number;
-  missingFilesList: Array<{
-    expectedFile: string;
-    found: boolean;
-    registerRow: number;
-  }>;
-  namingErrors: Array<{
-    folderPath: string;
-    fileName: string;
-    errorType: string;
-    details: string;
-  }>;
-  titleBlockErrors: Array<{
-    sheetNo: string;
-    sheetName: string;
-    fileName: string;
-    detectedRevCode: string;
-    revDate: string;
-    revDesc: string;
-    suitabilityCode: string;
-    stageDesc: string;
-    namingConvStatus: string;
-  }>;
+  registerFile: File | null;
+  namingRulesFile: File | null;
+  titleBlocksFile: File | null;
 }
 
 export const DrawingQC = () => {
   const [state, setState] = useState<QCState>({
-    selectedFolder: "",
+    selectedFolder: null,
+    folderName: "",
     includeSubfolders: true,
-    registerFile: "",
-    namingRulesFile: "",
-    titleBlocksFile: "",
-    isProcessing: false,
-    hasResults: false,
-    results: null,
+    registerFile: null,
+    namingRulesFile: null,
+    titleBlocksFile: null,
   });
 
   const [searchFilter, setSearchFilter] = useState("");
+  const { state: validationState, runValidation, downloadReport, reset } = useValidationRunner();
 
-  const canRunChecks = state.selectedFolder && state.registerFile && state.namingRulesFile && state.titleBlocksFile;
+  // Debug: Log validation state changes
+  React.useEffect(() => {
+    console.log('Validation state updated:', validationState);
+  }, [validationState]);
+
+  // For testing, allow running checks without all files (will use mock data)
+  const canRunChecks = true; // Always allow running for demo purposes
 
   const handleRunChecks = async () => {
-    setState(prev => ({ ...prev, isProcessing: true }));
+    console.log('handleRunChecks called');
+    console.log('canRunChecks:', canRunChecks);
+    console.log('Current state:', state);
     
-    // Simulate processing
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    // Mock results
-    const mockResults: QCResults = {
-      compliance: 87,
-      drawingsScanned: 245,
-      missingFiles: 8,
-      expectedFiles: 253,
-      namingCompliance: 94,
-      titleBlockCompliance: 89,
-      missingFilesList: [
-        { expectedFile: "DWG-001-Rev-A.pdf", found: false, registerRow: 15 },
-        { expectedFile: "DWG-002-Rev-B.pdf", found: false, registerRow: 32 },
-      ],
-      namingErrors: [
-        { folderPath: "/project/structural", fileName: "beam_detail.pdf", errorType: "Invalid Format", details: "Missing revision code" },
-        { folderPath: "/project/mechanical", fileName: "hvac-layout.pdf", errorType: "Case Mismatch", details: "Should be uppercase" },
-      ],
-      titleBlockErrors: [
-        { sheetNo: "S-001", sheetName: "Foundation Plan", fileName: "foundation.pdf", detectedRevCode: "A", revDate: "2024-01-15", revDesc: "Initial Issue", suitabilityCode: "S3", stageDesc: "Construction", namingConvStatus: "Pass" },
-      ],
+    if (!canRunChecks) {
+      console.log('Cannot run checks - missing required inputs');
+      return;
+    }
+
+    const inputs: ValidationInputs = {
+      folder: state.selectedFolder,
+      includeSubfolders: state.includeSubfolders,
+      registerFile: state.registerFile,
+      namingFile: state.namingRulesFile,
+      titleBlockFile: state.titleBlocksFile,
     };
 
-    setState(prev => ({ 
-      ...prev, 
-      isProcessing: false, 
-      hasResults: true, 
-      results: mockResults 
-    }));
-  };
-
-  const handleFileSelect = (field: keyof QCState) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setState(prev => ({ ...prev, [field]: file.name }));
+    console.log('Validation inputs:', inputs);
+    
+    try {
+      await runValidation(inputs);
+      console.log('Validation completed');
+    } catch (error) {
+      console.error('Validation failed:', error);
     }
   };
 
-  const handleFolderSelect = () => {
-    // In a real app, this would use the File System Access API
-    setState(prev => ({ ...prev, selectedFolder: "/example/project/drawings" }));
+  const handleFileSelect = (field: 'registerFile' | 'namingRulesFile' | 'titleBlocksFile') => 
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file) {
+        setState(prev => ({ ...prev, [field]: file }));
+      }
+    };
+
+  const handleFolderSelect = async () => {
+    try {
+      console.log('Attempting to select folder...');
+      console.log('Current URL:', window.location.href);
+      console.log('User Agent:', navigator.userAgent);
+      
+      // Check if we're in a secure context
+      console.log('Is secure context:', window.isSecureContext);
+      
+      if (FileSystemUtil.isFileSystemAccessSupported()) {
+        console.log('File System Access API is supported');
+        console.log('showDirectoryPicker available:', 'showDirectoryPicker' in window);
+        
+        const directory = await FileSystemUtil.selectDirectory();
+        console.log('Directory selected:', directory);
+        if (directory) {
+          setState(prev => ({ 
+            ...prev, 
+            selectedFolder: directory as unknown as FileSystemDirectoryHandle, 
+            folderName: directory.name 
+          }));
+          console.log('State updated with folder:', directory.name);
+        } else {
+          console.log('User cancelled folder selection');
+        }
+      } else {
+        console.log('File System Access API is NOT supported');
+        console.log('showDirectoryPicker in window:', 'showDirectoryPicker' in window);
+        // Fallback for browsers without File System Access API
+        alert('File System Access API is not supported in this browser. Please use a modern browser like Chrome or Edge.');
+      }
+    } catch (error) {
+      console.error('Error selecting folder:', error);
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      alert(`Error selecting folder: ${error.message}`);
+    }
+  };
+
+  const handleDownloadReport = async () => {
+    try {
+      await downloadReport();
+    } catch (error) {
+      console.error('Error downloading report:', error);
+    }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pass': return <CheckCircle className="h-4 w-4 text-accent" />;
-      case 'fail': return <XCircle className="h-4 w-4 text-destructive" />;
+      case 'valid': return <CheckCircle className="h-4 w-4 text-accent" />;
+      case 'invalid': 
+      case 'mismatch':
+      case 'missing': return <XCircle className="h-4 w-4 text-destructive" />;
       case 'warn': return <AlertTriangle className="h-4 w-4 text-warning" />;
       default: return null;
     }
+  };
+
+  const testFileSystemAPI = () => {
+    console.log('=== File System API Test ===');
+    console.log('window object exists:', typeof window !== 'undefined');
+    console.log('showDirectoryPicker exists:', 'showDirectoryPicker' in window);
+    console.log('Is secure context:', window.isSecureContext);
+    console.log('Protocol:', window.location.protocol);
+    console.log('Host:', window.location.host);
+    
+    if ('showDirectoryPicker' in window) {
+      console.log('showDirectoryPicker type:', typeof window.showDirectoryPicker);
+      console.log('Attempting to call showDirectoryPicker...');
+      
+      window.showDirectoryPicker({ mode: 'read' })
+        .then((handle) => {
+          console.log('Success! Directory handle:', handle);
+          alert(`Success! Selected folder: ${handle.name}`);
+        })
+        .catch((error) => {
+          console.error('Error calling showDirectoryPicker:', error);
+          alert(`Error: ${error.message}`);
+        });
+    } else {
+      alert('showDirectoryPicker is not available in this browser');
+    }
+  };
+
+  // Filter function for search
+  const filterResults = (items: any[], searchTerm: string) => {
+    if (!searchTerm) return items;
+    return items.filter(item => 
+      Object.values(item).some(value => 
+        String(value).toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
   };
 
   return (
@@ -132,9 +183,12 @@ export const DrawingQC = () => {
       <header className="sticky top-0 z-50 bg-background/80 apple-blur border-b border-border">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <h1 className="text-2xl font-semibold text-center text-foreground">Drawing QC</h1>
-          {state.isProcessing && (
+          {validationState.isRunning && (
             <div className="mt-3">
-              <Progress value={66} className="h-1" />
+              <Progress value={validationState.progress} className="h-1" />
+              <p className="text-sm text-muted-foreground mt-1 text-center">
+                {validationState.currentStep}
+              </p>
             </div>
           )}
         </div>
@@ -161,6 +215,11 @@ export const DrawingQC = () => {
                 </div>
                 <div className="col-span-4">
                   <span className="text-sm text-muted-foreground">Root folder of files</span>
+                  {state.folderName && (
+                    <div className="text-sm text-green-600 mt-1">
+                      ✓ Selected: {state.folderName}
+                    </div>
+                  )}
                 </div>
                 <div className="col-span-3">
                   <Button 
@@ -169,6 +228,16 @@ export const DrawingQC = () => {
                     className="w-full apple-transition apple-hover"
                   >
                     Choose Folder
+                  </Button>
+                </div>
+                <div className="col-span-1">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={testFileSystemAPI}
+                    className="apple-transition apple-hover"
+                  >
+                    Test
                   </Button>
                 </div>
               </div>
@@ -259,18 +328,18 @@ export const DrawingQC = () => {
             <div className="pt-4">
               <Button 
                 onClick={handleRunChecks}
-                disabled={!canRunChecks || state.isProcessing}
+                disabled={!canRunChecks || validationState.isRunning}
                 className="w-full apple-transition apple-hover"
                 size="lg"
               >
-                {state.isProcessing ? "Processing..." : "Run Checks"}
+                {validationState.isRunning ? "Processing..." : "Run Checks"}
               </Button>
             </div>
           </CardContent>
         </Card>
 
         {/* Summary Panel */}
-        {state.hasResults && state.results && (
+        {validationState.results && (
           <Card className="apple-shadow fade-slide-in">
             <CardHeader>
               <CardTitle>Summary</CardTitle>
@@ -278,35 +347,35 @@ export const DrawingQC = () => {
             <CardContent>
               <div className="grid gap-6 md:grid-cols-5">
                 <div className="md:col-span-2 flex justify-center">
-                  <CircularGauge percentage={state.results.compliance} />
+                  <CircularGauge percentage={validationState.results.overallCompliance} />
                 </div>
                 <div className="md:col-span-3 grid gap-4 sm:grid-cols-2">
                   <MetricCard
                     title="Drawings scanned"
-                    value={state.results.drawingsScanned}
+                    value={validationState.results.totalFiles}
                     tooltip="Count of files processed"
                   />
                   <MetricCard
                     title="Missing vs expected"
-                    value={`${state.results.missingFiles} missing`}
-                    chart={<MiniBarChart missing={state.results.missingFiles} total={state.results.expectedFiles} />}
+                    value={`${validationState.results.missingFiles.missingCount} missing`}
+                    chart={<MiniBarChart missing={validationState.results.missingFiles.missingCount} total={validationState.results.missingFiles.totalExpected} />}
                     tooltip="From Register.xlsx"
                   />
                   <MetricCard
                     title="Naming compliance"
-                    value={`${state.results.namingCompliance}% OK`}
+                    value={`${validationState.results.naming.compliancePercentage}% OK`}
                     chart={<SparkBar data={[72, 78, 83, 87, 90, 94]} />}
                     tooltip="From Naming-Rules.xlsx"
                   />
                   <MetricCard
                     title="Title-block compliance"
-                    value={`${state.results.titleBlockCompliance}% OK`}
+                    value={`${validationState.results.titleBlock.compliancePercentage}% OK`}
                     chart={<SparkBar data={[65, 71, 76, 82, 85, 89]} />}
                     tooltip="From Title-Blocks.xlsx"
                   />
                   <MetricCard
                     title="Overall compliance"
-                    value={`${state.results.compliance}% OK`}
+                    value={`${validationState.results.overallCompliance}% OK`}
                     chart={<SparkBar data={[78, 81, 84, 86, 87, 87]} />}
                     tooltip="Combined compliance score"
                   />
@@ -317,7 +386,7 @@ export const DrawingQC = () => {
         )}
 
         {/* Results Viewer */}
-        {state.hasResults && state.results && (
+        {validationState.results && (
           <Card className="apple-shadow fade-slide-in">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Results</CardTitle>
@@ -331,7 +400,7 @@ export const DrawingQC = () => {
                     className="pl-9 w-64 apple-transition"
                   />
                 </div>
-                <Button variant="outline" className="apple-transition apple-hover">
+                <Button variant="outline" className="apple-transition apple-hover" onClick={handleDownloadReport}>
                   <Download className="h-4 w-4 mr-2" />
                   Download XLSX Report
                 </Button>
@@ -357,14 +426,11 @@ export const DrawingQC = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {state.results.missingFilesList.map((item, index) => (
-                          <TableRow key={index} className={!item.found ? "bg-destructive/10" : ""}>
+                        {filterResults(validationState.results.missingFiles.missingFiles, searchFilter).map((item, index) => (
+                          <TableRow key={index} className="bg-destructive/10">
                             <TableCell className="font-medium">{item.expectedFile}</TableCell>
                             <TableCell>
-                              {item.found ? 
-                                <CheckCircle className="h-4 w-4 text-accent" /> : 
-                                <XCircle className="h-4 w-4 text-destructive" />
-                              }
+                              <XCircle className="h-4 w-4 text-destructive" />
                             </TableCell>
                             <TableCell>{item.registerRow}</TableCell>
                           </TableRow>
@@ -386,7 +452,7 @@ export const DrawingQC = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {state.results.namingErrors.map((error, index) => (
+                        {filterResults(validationState.results.naming.errors, searchFilter).map((error, index) => (
                           <TableRow key={index} className="bg-destructive/10">
                             <TableCell>{error.folderPath}</TableCell>
                             <TableCell className="font-medium">{error.fileName}</TableCell>
@@ -413,17 +479,17 @@ export const DrawingQC = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {state.results.titleBlockErrors.map((error, index) => (
+                        {filterResults(validationState.results.titleBlock.results, searchFilter).map((result, index) => (
                           <TableRow key={index}>
-                            <TableCell>{error.sheetNo}</TableCell>
-                            <TableCell className="font-medium">{error.sheetName}</TableCell>
-                            <TableCell>{error.fileName}</TableCell>
-                            <TableCell>{error.detectedRevCode}</TableCell>
-                            <TableCell>{error.revDate}</TableCell>
+                            <TableCell>{result.sheetNo}</TableCell>
+                            <TableCell className="font-medium">{result.sheetName}</TableCell>
+                            <TableCell>{result.fileName}</TableCell>
+                            <TableCell>{result.revCode}</TableCell>
+                            <TableCell>{result.revDate}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                {getStatusIcon(error.namingConvStatus)}
-                                <span>{error.namingConvStatus}</span>
+                                {getStatusIcon(result.status === 'VALID' ? 'valid' : 'invalid')}
+                                <span>{result.status}</span>
                               </div>
                             </TableCell>
                           </TableRow>
