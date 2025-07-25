@@ -13,7 +13,10 @@ export type {
 export { FileSystemUtil } from './file-system';
 export type { 
   FileEntry, 
-  DirectoryTraversalOptions 
+  DirectoryTraversalOptions,
+  FileSystemDirectoryHandle,
+  FileSystemFileHandle,
+  FileSystemHandle
 } from './file-system';
 
 export { ReportBuilder } from './report-builder';

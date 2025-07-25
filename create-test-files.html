@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Test Excel Files</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Create Test Excel Files</h1>
+    <button onclick="createRegisterFile()">Download Register.xlsx</button>
+    <button onclick="createNamingRulesFile()">Download Naming-Rules.xlsx</button>
+    <button onclick="createTitleBlockFile()">Download Title-Blocks.xlsx</button>
+
+    <script>
+        function createRegisterFile() {
+            const data = [
+                ['Drawing Number', 'Title', 'Revision', 'Status'],
+                ['DWG-001-Rev-A.pdf', 'Foundation Plan', 'A', 'Approved'],
+                ['DWG-002-Rev-B.pdf', 'Site Plan', 'B', 'Approved'],
+                ['STR-003-Rev-A.pdf', 'Beam Detail', 'A', 'Approved'],
+                ['DWG-004-Rev-A.pdf', 'Electrical Layout', 'A', 'Draft']
+            ];
+            
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, 'Register');
+            XLSX.writeFile(wb, 'Register.xlsx');
+        }
+
+        function createNamingRulesFile() {
+            const sheetsData = [
+                ['Pattern', 'Description', 'Example'],
+                ['DWG-XXX-Rev-X.pdf', 'General Drawings', 'DWG-001-Rev-A.pdf'],
+                ['STR-XXX-Rev-X.pdf', 'Structural Drawings', 'STR-001-Rev-A.pdf'],
+                ['MEP-XXX-Rev-X.pdf', 'MEP Drawings', 'MEP-001-Rev-A.pdf']
+            ];
+
+            const modelsData = [
+                ['Model Type', 'Prefix', 'Format'],
+                ['Architectural', 'ARCH', 'ARCH-XXX-Rev-X'],
+                ['Structural', 'STR', 'STR-XXX-Rev-X'],
+                ['MEP', 'MEP', 'MEP-XXX-Rev-X']
+            ];
+            
+            const wb = XLSX.utils.book_new();
+            const ws1 = XLSX.utils.aoa_to_sheet(sheetsData);
+            const ws2 = XLSX.utils.aoa_to_sheet(modelsData);
+            XLSX.utils.book_append_sheet(wb, ws1, 'Sheets');
+            XLSX.utils.book_append_sheet(wb, ws2, 'Models');
+            XLSX.writeFile(wb, 'Naming-Rules.xlsx');
+        }
+
+        function createTitleBlockFile() {
+            const data = [
+                ['Sheet No', 'Sheet Name', 'File Name', 'Rev Code', 'Rev Date', 'Status'],
+                ['DWG-001', 'Foundation Plan', 'DWG-001-Rev-A.pdf', 'A', '2024-01-15', 'VALID'],
+                ['DWG-002', 'Site Plan', 'DWG-002-Rev-B.pdf', 'B', '2024-01-20', 'VALID'],
+                ['STR-003', 'Beam Detail', 'STR-003-Rev-A.pdf', 'A', '2024-01-25', 'VALID']
+            ];
+            
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, 'TitleBlocks');
+            XLSX.writeFile(wb, 'Title-Blocks.xlsx');
+        }
+    </script>
+</body>
+</html>

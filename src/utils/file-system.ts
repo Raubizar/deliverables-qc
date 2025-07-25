@@ -10,19 +10,21 @@ declare global {
   }
 }
 
-interface FileSystemDirectoryHandle {
+export interface FileSystemDirectoryHandle {
   entries(): AsyncIterableIterator<[string, FileSystemHandle]>;
+  getDirectoryHandle(name: string): Promise<FileSystemDirectoryHandle>;
+  getFileHandle(name: string): Promise<FileSystemFileHandle>;
   kind: 'directory';
   name: string;
 }
 
-interface FileSystemFileHandle {
+export interface FileSystemFileHandle {
   getFile(): Promise<File>;
   kind: 'file';
   name: string;
 }
 
-type FileSystemHandle = FileSystemDirectoryHandle | FileSystemFileHandle;
+export type FileSystemHandle = FileSystemDirectoryHandle | FileSystemFileHandle;
 
 export interface FileEntry {
   name: string;
@@ -51,22 +53,65 @@ export class FileSystemUtil {
    */
   public static async selectDirectory(): Promise<FileSystemDirectoryHandle | null> {
     console.log('[FileSystemUtil] selectDirectory called');
+    
+    // Check browser support
     if (!this.isFileSystemAccessSupported()) {
       console.error('[FileSystemUtil] File System Access API is not supported.');
-      alert('Error: File System Access API is not available in your browser. Please use a modern browser like Chrome or Edge and ensure you are on a secure (HTTPS) page.');
+      const userAgent = navigator.userAgent;
+      const isChrome = /Chrome/.test(userAgent);
+      const isEdge = /Edge/.test(userAgent);
+      const isSecure = window.isSecureContext;
+      
+      console.log('Browser info:', { userAgent, isChrome, isEdge, isSecure });
+      
+      let message = 'File System Access API is not available in your browser.\n\n';
+      if (!isSecure) {
+        message += 'Reason: This page is not served over HTTPS. The File System Access API requires a secure context.\n';
+        message += 'Please access this page via HTTPS or localhost.\n\n';
+      }
+      if (!isChrome && !isEdge) {
+        message += 'Reason: Your browser does not support the File System Access API.\n';
+        message += 'Please use Chrome (version 86+) or Edge (version 86+).\n\n';
+      }
+      message += 'Currently detected: ' + userAgent;
+      
+      alert(message);
       return null;
     }
 
     try {
       console.log('[FileSystemUtil] Calling window.showDirectoryPicker...');
+      console.log('Browser support check passed');
+      console.log('Window.showDirectoryPicker exists:', 'showDirectoryPicker' in window);
+      
       const directoryHandle = await window.showDirectoryPicker({ mode: 'read' });
       console.log('[FileSystemUtil] Successfully received directory handle:', directoryHandle);
+      console.log('Directory name:', directoryHandle.name);
+      console.log('Directory kind:', directoryHandle.kind);
+      
+      // Test if we can actually read from the directory
+      try {
+        console.log('[FileSystemUtil] Testing directory access...');
+        const entries = directoryHandle.entries();
+        const firstEntry = await entries.next();
+        console.log('[FileSystemUtil] Directory access test successful, first entry:', firstEntry.value);
+      } catch (accessError) {
+        console.warn('[FileSystemUtil] Directory access test failed:', accessError);
+      }
+      
       return directoryHandle;
     } catch (error) {
       console.error('[FileSystemUtil] Error during showDirectoryPicker:', error);
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
           console.log('[FileSystemUtil] User cancelled the folder selection dialog.');
+          return null;
+        } else if (error.name === 'NotAllowedError') {
+          console.error('[FileSystemUtil] Permission denied or user dismissed the prompt.');
+          alert('Permission denied. Please grant permission to access the folder or try again.');
+        } else if (error.name === 'SecurityError') {
+          console.error('[FileSystemUtil] Security error - possibly not in secure context.');
+          alert('Security error: This feature requires a secure context (HTTPS or localhost).');
         } else {
           console.error(`[FileSystemUtil] Error details: Name: ${error.name}, Message: ${error.message}`);
           alert(`An error occurred while selecting the directory: ${error.message}`);
@@ -86,6 +131,10 @@ export class FileSystemUtil {
     directory: FileSystemDirectoryHandle,
     options: DirectoryTraversalOptions
   ): Promise<FileEntry[]> {
+    console.log('[FileSystemUtil] Starting directory traversal...');
+    console.log('Directory:', directory.name);
+    console.log('Options:', options);
+    
     const files: FileEntry[] = [];
     let processedCount = 0;
 
@@ -93,55 +142,80 @@ export class FileSystemUtil {
       dirHandle: FileSystemDirectoryHandle,
       currentPath: string = ''
     ): Promise<void> {
-      for await (const [name, handle] of dirHandle.entries()) {
-        const fullPath = currentPath ? `${currentPath}/${name}` : name;
+      console.log(`[FileSystemUtil] Traversing directory: ${currentPath || 'root'}`);
+      
+      try {
+        for await (const [name, handle] of dirHandle.entries()) {
+          const fullPath = currentPath ? `${currentPath}/${name}` : name;
+          console.log(`[FileSystemUtil] Processing: ${fullPath} (${handle.kind})`);
 
-        if (handle.kind === 'file') {
-          const file = await (handle as FileSystemFileHandle).getFile();
-          
-          // Check file extension filter
-          if (options.fileExtensions && options.fileExtensions.length > 0) {
-            const extension = FileSystemUtil.getFileExtension(file.name);
-            const normalizedExtensions = options.fileExtensions.map(ext =>
-              ext.toLowerCase().startsWith('.') ? ext.toLowerCase() : `.${ext.toLowerCase()}`
-            );
-            
-            if (!normalizedExtensions.includes(extension.toLowerCase())) {
-              continue; // Skip files that don't match extension filter
+          if (handle.kind === 'file') {
+            try {
+              const file = await (handle as FileSystemFileHandle).getFile();
+              
+              // Check file extension filter
+              if (options.fileExtensions && options.fileExtensions.length > 0) {
+                const extension = FileSystemUtil.getFileExtension(file.name);
+                const normalizedExtensions = options.fileExtensions.map(ext =>
+                  ext.toLowerCase().startsWith('.') ? ext.toLowerCase() : `.${ext.toLowerCase()}`
+                );
+                
+                if (!normalizedExtensions.includes(extension.toLowerCase())) {
+                  console.log(`[FileSystemUtil] Skipping file ${file.name} - extension ${extension} not in filter`);
+                  continue; // Skip files that don't match extension filter
+                }
+              }
+
+              files.push({
+                name: file.name,
+                path: fullPath,
+                size: file.size,
+                lastModified: new Date(file.lastModified),
+                type: 'file'
+              });
+
+              processedCount++;
+              console.log(`[FileSystemUtil] Added file: ${file.name} (${file.size} bytes)`);
+              
+              // Report progress if callback provided
+              if (options.progressCallback) {
+                // Estimate total based on processed files (rough approximation)
+                const estimatedTotal = Math.max(processedCount * 2, 100);
+                options.progressCallback(processedCount, estimatedTotal);
+              }
+            } catch (fileError) {
+              console.error(`[FileSystemUtil] Error reading file ${name}:`, fileError);
             }
+          } else if (handle.kind === 'directory' && options.includeSubfolders) {
+            console.log(`[FileSystemUtil] Entering subdirectory: ${fullPath}`);
+            // Recursively traverse subdirectories
+            await traverseRecursive(handle as FileSystemDirectoryHandle, fullPath);
+          } else if (handle.kind === 'directory') {
+            console.log(`[FileSystemUtil] Skipping subdirectory ${fullPath} (includeSubfolders=false)`);
           }
-
-          files.push({
-            name: file.name,
-            path: fullPath,
-            size: file.size,
-            lastModified: new Date(file.lastModified),
-            type: 'file'
-          });
-
-          processedCount++;
-          
-          // Report progress if callback provided
-          if (options.progressCallback) {
-            // Estimate total based on processed files (rough approximation)
-            const estimatedTotal = Math.max(processedCount * 2, 100);
-            options.progressCallback(processedCount, estimatedTotal);
-          }
-        } else if (handle.kind === 'directory' && options.includeSubfolders) {
-          // Recursively traverse subdirectories
-          await traverseRecursive(handle as FileSystemDirectoryHandle, fullPath);
         }
+      } catch (error) {
+        console.error(`[FileSystemUtil] Error traversing directory ${currentPath}:`, error);
+        throw error;
       }
     }
 
-    await traverseRecursive(directory);
+    try {
+      await traverseRecursive(directory);
+      
+      // Final progress update
+      if (options.progressCallback) {
+        options.progressCallback(files.length, files.length);
+      }
 
-    // Final progress update
-    if (options.progressCallback) {
-      options.progressCallback(files.length, files.length);
+      console.log(`[FileSystemUtil] Directory traversal complete. Found ${files.length} files.`);
+      console.log('Files found:', files.map(f => f.name));
+      
+      return files;
+    } catch (error) {
+      console.error('[FileSystemUtil] Error during directory traversal:', error);
+      throw error;
     }
-
-    return files;
   }
 
   /**

@@ -12,7 +12,7 @@ import { MetricCard } from "./MetricCard";
 import { MiniBarChart, MiniDoughnut, SparkBar } from "./MiniChart";
 import { Folder, FileText, Edit3, PenTool, Download, Search, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { useValidationRunner, type ValidationInputs } from "../hooks/useValidationRunner";
-import { FileSystemUtil } from "../utils";
+import { FileSystemUtil, type FileSystemDirectoryHandle } from "../utils";
 
 interface QCState {
   selectedFolder: FileSystemDirectoryHandle | null;
@@ -41,16 +41,30 @@ export const DrawingQC = () => {
     console.log('Validation state updated:', validationState);
   }, [validationState]);
 
-  // For testing, allow running checks without all files (will use mock data)
-  const canRunChecks = state.selectedFolder && state.registerFile && state.namingRulesFile && state.titleBlocksFile;
+  // Allow running checks with minimum required inputs (folder + register file)
+  const canRunChecks = state.selectedFolder && state.registerFile;
 
   const handleRunChecks = async () => {
+    console.log('=== STARTING VALIDATION ===');
     console.log('handleRunChecks called');
     console.log('canRunChecks:', canRunChecks);
-    console.log('Current state:', state);
+    console.log('Current state:', {
+      hasFolder: !!state.selectedFolder,
+      folderName: state.folderName,
+      hasRegisterFile: !!state.registerFile,
+      registerFileName: state.registerFile?.name,
+      hasNamingFile: !!state.namingRulesFile,
+      namingFileName: state.namingRulesFile?.name,
+      hasTitleBlockFile: !!state.titleBlocksFile,
+      titleBlockFileName: state.titleBlocksFile?.name,
+      includeSubfolders: state.includeSubfolders
+    });
     
     if (!canRunChecks) {
       console.log('Cannot run checks - missing required inputs');
+      console.log('Required: folder + register file');
+      console.log('Has folder:', !!state.selectedFolder);
+      console.log('Has register file:', !!state.registerFile);
       return;
     }
 
@@ -62,13 +76,25 @@ export const DrawingQC = () => {
       titleBlockFile: state.titleBlocksFile,
     };
 
-    console.log('Validation inputs:', inputs);
+    console.log('Validation inputs prepared:', {
+      folder: inputs.folder ? { name: inputs.folder.name, kind: inputs.folder.kind } : null,
+      includeSubfolders: inputs.includeSubfolders,
+      registerFile: inputs.registerFile ? { name: inputs.registerFile.name, size: inputs.registerFile.size } : null,
+      namingFile: inputs.namingFile ? { name: inputs.namingFile.name, size: inputs.namingFile.size } : null,
+      titleBlockFile: inputs.titleBlockFile ? { name: inputs.titleBlockFile.name, size: inputs.titleBlockFile.size } : null,
+    });
     
     try {
+      console.log('Starting validation...');
       await runValidation(inputs);
-      console.log('Validation completed');
+      console.log('Validation completed successfully');
     } catch (error) {
       console.error('Validation failed:', error);
+      console.error('Error details:', {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack
+      });
     }
   };
 
@@ -80,45 +106,102 @@ export const DrawingQC = () => {
       }
     };
 
+  const handleFilesFallback = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      console.log('Files selected via fallback method:', Array.from(files).map(f => f.name));
+      
+      // Create a mock folder structure for the selected files
+      const mockFolder = {
+        name: 'Selected Files',
+        kind: 'directory' as const,
+        entries: async function* () {
+          for (const file of files) {
+            yield [file.name, {
+              kind: 'file' as const,
+              name: file.name,
+              getFile: () => Promise.resolve(file)
+            }];
+          }
+        }
+      };
+      
+      setState(prev => ({ 
+        ...prev, 
+        selectedFolder: mockFolder as any,
+        folderName: `${files.length} files selected`
+      }));
+      
+      console.log('Mock folder created for fallback files');
+    }
+  };
+
   const handleFolderSelect = async () => {
     try {
+      console.log('=== FOLDER SELECTION START ===');
       console.log('Attempting to select folder...');
       console.log('Current URL:', window.location.href);
       console.log('User Agent:', navigator.userAgent);
-      
-      // Check if we're in a secure context
       console.log('Is secure context:', window.isSecureContext);
+      console.log('showDirectoryPicker in window:', 'showDirectoryPicker' in window);
       
       if (FileSystemUtil.isFileSystemAccessSupported()) {
-        console.log('File System Access API is supported');
-        console.log('showDirectoryPicker available:', 'showDirectoryPicker' in window);
+        console.log('✓ File System Access API is supported');
         
         const directory = await FileSystemUtil.selectDirectory();
-        console.log('Directory selected:', directory);
+        console.log('Directory selection result:', directory);
+        
         if (directory) {
+          console.log('✓ Directory selected successfully');
+          console.log('Directory name:', directory.name);
+          console.log('Directory kind:', directory.kind);
+          
           setState(prev => ({ 
             ...prev, 
-            selectedFolder: directory as unknown as FileSystemDirectoryHandle, 
+            selectedFolder: directory, 
             folderName: directory.name 
           }));
-          console.log('State updated with folder:', directory.name);
+          
+          console.log('✓ State updated with folder:', directory.name);
+          
+          // Test directory access immediately
+          try {
+            console.log('Testing immediate directory access...');
+            const entries = directory.entries();
+            const firstEntry = await entries.next();
+            console.log('✓ Directory access test successful:', firstEntry.value);
+          } catch (accessError) {
+            console.error('⚠ Directory access test failed:', accessError);
+          }
         } else {
-          console.log('User cancelled folder selection');
+          console.log('⚠ User cancelled folder selection or selection failed');
         }
       } else {
-        console.log('File System Access API is NOT supported');
-        console.log('showDirectoryPicker in window:', 'showDirectoryPicker' in window);
-        // Fallback for browsers without File System Access API
-        alert('File System Access API is not supported in this browser. Please use a modern browser like Chrome or Edge.');
+        console.error('✗ File System Access API is NOT supported');
+        const isChrome = /Chrome/.test(navigator.userAgent);
+        const isEdge = /Edg/.test(navigator.userAgent);
+        const isHttps = window.location.protocol === 'https:';
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        console.log('Browser detection:', { isChrome, isEdge, isHttps, isLocalhost });
+        
+        alert(`File System Access API is not supported. 
+Browser: ${isChrome ? 'Chrome' : isEdge ? 'Edge' : 'Other'}
+Protocol: ${window.location.protocol}
+Context: ${window.isSecureContext ? 'Secure' : 'Insecure'}
+
+Please use Chrome/Edge with HTTPS or localhost.`);
       }
+      console.log('=== FOLDER SELECTION END ===');
     } catch (error) {
+      console.error('=== FOLDER SELECTION ERROR ===');
       console.error('Error selecting folder:', error);
       console.error('Error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack
       });
-      alert(`Error selecting folder: ${error.message}`);
+      alert(`Error selecting folder: ${error?.message || 'Unknown error'}`);
     }
   };
 
@@ -127,6 +210,46 @@ export const DrawingQC = () => {
       await downloadReport();
     } catch (error) {
       console.error('Error downloading report:', error);
+    }
+  };
+
+  const handleTestWithMockData = async () => {
+    console.log('🧪 Testing with mock data (debug mode)');
+    
+    // Create mock file data
+    const mockFile = new File(['Drawing Number,Title,Revision\nDWG-001-Rev-A.pdf,Foundation Plan,A\nDWG-002-Rev-B.pdf,Site Plan,B'], 'mock-register.csv', { type: 'text/csv' });
+    
+    const mockFolder = {
+      name: 'Mock Test Folder',
+      kind: 'directory' as const,
+      entries: async function* () {
+        yield ['DWG-001-Rev-A.pdf', {
+          kind: 'file' as const,
+          name: 'DWG-001-Rev-A.pdf',
+          getFile: () => Promise.resolve(new File(['mock pdf content'], 'DWG-001-Rev-A.pdf', { type: 'application/pdf' }))
+        }];
+        yield ['DWG-002-Rev-B.pdf', {
+          kind: 'file' as const,
+          name: 'DWG-002-Rev-B.pdf',
+          getFile: () => Promise.resolve(new File(['mock pdf content'], 'DWG-002-Rev-B.pdf', { type: 'application/pdf' }))
+        }];
+      }
+    };
+    
+    const inputs: ValidationInputs = {
+      folder: mockFolder as any,
+      includeSubfolders: true,
+      registerFile: mockFile,
+      namingFile: null,
+      titleBlockFile: null,
+    };
+
+    console.log('🚀 Running test validation with mock data...');
+    try {
+      await runValidation(inputs);
+      console.log('✅ Test validation completed');
+    } catch (error) {
+      console.error('❌ Test validation failed:', error);
     }
   };
 
@@ -203,6 +326,24 @@ export const DrawingQC = () => {
                   >
                     Choose Folder
                   </Button>
+                  {!state.selectedFolder && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      <input
+                        type="file"
+                        multiple
+                        accept=".pdf,.dwg,.png,.jpg"
+                        onChange={handleFilesFallback}
+                        style={{ display: 'none' }}
+                        id="files-fallback"
+                      />
+                      <label 
+                        htmlFor="files-fallback" 
+                        className="cursor-pointer text-blue-600 hover:underline"
+                      >
+                        Or select files
+                      </label>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -298,6 +439,18 @@ export const DrawingQC = () => {
               >
                 {validationState.isRunning ? "Processing..." : "Run Checks"}
               </Button>
+              
+              {/* Debug test button */}
+              {window.location.search.includes('debug=true') && (
+                <Button 
+                  onClick={handleTestWithMockData}
+                  variant="outline"
+                  className="w-full mt-2 apple-transition apple-hover"
+                  size="sm"
+                >
+                  🧪 Test with Mock Files (Debug)
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
