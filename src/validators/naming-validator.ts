@@ -62,10 +62,11 @@ export class NamingValidator {
     const result = this.analyzeFileName(fileName);
     console.log(`[NamingValidator] Analysis result:`, result);
     
-    // For valid files, set standard details message
-    const details = result.compliance === 'Ok' && !result.details 
-      ? 'Delimiter correct. Number of parts correct.'
-      : result.details;
+    // Set details based on compliance result
+    let details = result.details || '';
+    if (result.compliance === 'Ok' && !details) {
+      details = 'Delimiter correct. Number of parts correct.';
+    }
     
     const validationResult = {
       fileName,
@@ -115,7 +116,7 @@ export class NamingValidator {
    */
   private analyzeFileName(fileName: string): { compliance: string; details: string; nonCompliantParts?: string[] } {
     if (!this.namingConvention) {
-      return { compliance: 'Wrong', details: 'No naming convention uploaded. Please upload a naming convention file.' };
+      return { compliance: 'No naming convention uploaded', details: 'Please upload a naming convention file' };
     }
 
     let partsCompliance = 'Ok';
@@ -135,48 +136,47 @@ export class NamingValidator {
       };
     }
 
-    // Fetch delimiter from line 1, column D (index 3)
-    const delimiter = namingTab[0][3];
+    // Fetch delimiter from line 1, column D
+    const delimiter = namingTab[0][3]; // Delimiter is always in column D
     if (!delimiter || typeof delimiter !== 'string') {
       return {
         compliance: 'Wrong',
-        details: 'Invalid or missing delimiter in naming convention.',
+        details: `Invalid or missing delimiter in naming convention.`,
       };
     }
 
+    console.log("Using delimiter:", delimiter); // Debugging
+
     // Remove extension from file name
-    let nameWithoutExt = fileName;
+    let fileNameWithoutExtension = fileName;
     if (dotPosition > 0) {
-      nameWithoutExt = fileName.substring(0, dotPosition);
+      fileNameWithoutExtension = fileName.substring(0, dotPosition);
     }
 
     // Split file name into parts using the delimiter
-    const nameParts = nameWithoutExt.split(delimiter);
+    const nameParts = fileNameWithoutExtension.split(delimiter);
+    console.log("Split parts:", nameParts); // Debugging
 
     // Validate each part
     const nonCompliantParts: string[] = [];
     for (let i = 0; i < nameParts.length; i++) {
-      const allowedParts = namingTab.slice(2).map(row => row[i + 1]).filter(Boolean); // Skip header rows and filter out empty values
-      
+      const allowedParts = namingTab.slice(2).map(row => row[i + 1]); // Skip header rows
+      console.log(`Validating part ${i + 1}:`, nameParts[i], "Allowed:", allowedParts); // Debugging
+
       let partAllowed = false;
 
-      for (const allowed of allowedParts) {
-        if (allowed && typeof allowed === 'string') {
-          if (allowed.includes('+N')) {
-            const prefix = allowed.split('+')[0];
-            if (nameParts[i].startsWith(prefix)) {
-              partAllowed = true;
-              break;
-            }
-          } else if (allowed === 'Var') {
+      allowedParts.forEach(allowed => {
+        if (allowed && typeof allowed === 'string' && allowed.includes('+N')) {
+          const prefix = allowed.split('+')[0];
+          if (nameParts[i].startsWith(prefix)) {
             partAllowed = true;
-            break;
-          } else if (allowed === nameParts[i]) {
-            partAllowed = true;
-            break;
           }
+        } else if (allowed === 'Var') {
+          partAllowed = true;
+        } else if (allowed === nameParts[i]) {
+          partAllowed = true;
         }
-      }
+      });
 
       if (!partAllowed) {
         details += `Part ${i + 1} (${nameParts[i]}) is not valid; `;

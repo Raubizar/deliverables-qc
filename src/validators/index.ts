@@ -4,11 +4,16 @@
  */
 
 export { NamingValidator } from './naming-validator';
+export { LegacyNamingValidator } from './legacy-naming-validator';
 export type { 
   NamingRule, 
   NamingValidationResult, 
   NamingValidationSummary 
 } from './naming-validator';
+export type {
+  LegacyNamingResult,
+  LegacyNamingSummary
+} from './legacy-naming-validator';
 
 export { MissingFilesValidator } from './missing-files-validator';
 export type { 

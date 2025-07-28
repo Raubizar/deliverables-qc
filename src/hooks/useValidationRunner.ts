@@ -6,12 +6,14 @@
 import { useState, useCallback } from 'react';
 import {
   NamingValidator,
+  LegacyNamingValidator,
   MissingFilesValidator,
   TitleBlockValidator,
   type ValidationResults
 } from '../validators';
 import {
   ExcelProcessor,
+  LegacyExcelProcessor,
   FileSystemUtil,
   ReportBuilder,
   type FileSystemDirectoryHandle
@@ -94,9 +96,13 @@ export function useValidationRunner(): UseValidationRunnerReturn {
       if (inputs.registerFile) {
         excelPromises.push(ExcelProcessor.readFile(inputs.registerFile));
       }
+      
+      // For naming file, use legacy processor
+      let namingConvention: { Sheets: any[][]; Models: any[][] } | null = null;
       if (inputs.namingFile) {
-        excelPromises.push(ExcelProcessor.readFile(inputs.namingFile));
+        namingConvention = await LegacyExcelProcessor.readExcelFile(inputs.namingFile);
       }
+      
       if (inputs.titleBlockFile) {
         excelPromises.push(ExcelProcessor.readFile(inputs.titleBlockFile));
       }
@@ -104,14 +110,11 @@ export function useValidationRunner(): UseValidationRunnerReturn {
       const excelResults = await Promise.all(excelPromises);
       
       // Map results to appropriate variables
-      let registerExcel, namingExcel, titleBlockExcel;
+      let registerExcel, titleBlockExcel;
       let resultIndex = 0;
       
       if (inputs.registerFile) {
         registerExcel = excelResults[resultIndex++];
-      }
-      if (inputs.namingFile) {
-        namingExcel = excelResults[resultIndex++];
       }
       if (inputs.titleBlockFile) {
         titleBlockExcel = excelResults[resultIndex++];
@@ -119,14 +122,15 @@ export function useValidationRunner(): UseValidationRunnerReturn {
 
       // Extract sheet data safely
       const registerSheet = registerExcel?.sheets[0]?.data || [];
-      const namingSheets = namingExcel ? {
-        Sheets: namingExcel.sheets.find(s => s.name === 'Sheets')?.data || [],
-        Models: namingExcel.sheets.find(s => s.name === 'Models')?.data || []
-      } : { Sheets: [], Models: [] };
       
-      console.log('[ValidationRunner] Naming sheets loaded:');
-      console.log('- Sheets tab:', namingSheets.Sheets);
-      console.log('- Models tab:', namingSheets.Models);
+      // Use legacy naming convention directly
+      const namingSheets = namingConvention || { Sheets: [], Models: [] };
+      
+      console.log('[ValidationRunner] Legacy naming sheets loaded:');
+      console.log('- Sheets data length:', namingSheets.Sheets.length);
+      console.log('- Models data length:', namingSheets.Models.length);
+      console.log('- Sheets data:', namingSheets.Sheets);
+      console.log('- Models data:', namingSheets.Models);
       const titleBlockSheet = titleBlockExcel?.sheets[0]?.data || [];
 
       updateProgress(30, 'Scanning directory...');
@@ -171,12 +175,34 @@ export function useValidationRunner(): UseValidationRunnerReturn {
 
       // Run naming validation if naming rules file is provided
       if (inputs.namingFile && (namingSheets.Sheets.length > 0 || namingSheets.Models.length > 0)) {
-        console.log('Running naming validation...');
-        const namingValidator = new NamingValidator();
-        namingValidator.loadRules(namingSheets.Sheets, namingSheets.Models);
-        namingResults = namingValidator.validateFiles(
+        console.log('Running LEGACY naming validation...');
+        const legacyNamingValidator = new LegacyNamingValidator();
+        legacyNamingValidator.loadRules(namingSheets);
+        const legacyResults = legacyNamingValidator.validateFiles(
           files.map(f => ({ name: f.name, path: f.path }))
         );
+        
+        // Convert legacy results to expected format
+        namingResults = {
+          totalFiles: legacyResults.totalFiles,
+          validFiles: legacyResults.validFiles,
+          invalidFiles: legacyResults.invalidFiles,
+          compliancePercentage: legacyResults.compliancePercentage,
+          errors: legacyResults.errors.map(e => ({
+            fileName: e.fileName,
+            folderPath: e.folderPath,
+            isValid: e.isValid,
+            details: e.details,
+            errorType: e.isValid ? undefined : 'INVALID_PATTERN' as const
+          })),
+          allResults: legacyResults.allResults.map(e => ({
+            fileName: e.fileName,
+            folderPath: e.folderPath,
+            isValid: e.isValid,
+            details: e.details,
+            errorType: e.isValid ? undefined : 'INVALID_PATTERN' as const
+          }))
+        };
       } else {
         console.log('Skipping naming validation - no naming rules file provided');
       }

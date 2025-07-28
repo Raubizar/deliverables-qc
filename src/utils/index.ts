@@ -4,6 +4,7 @@
  */
 
 export { ExcelProcessor } from './excel-processor';
+export { LegacyExcelProcessor } from './legacy-excel-processor';
 export type { 
   ExcelSheet, 
   ExcelFile, 
