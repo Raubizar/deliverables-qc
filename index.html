@@ -83,7 +83,61 @@
                 </div>
             </div>
 
+            <div class="file-filter-section">
+                <h3>File Type Filter</h3>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all" id="filterAll">All Files</button>
+                    <button class="filter-btn" data-filter="pdf" id="filterPDF">PDF Only</button>
+                    <button class="filter-btn" data-filter="dwg" id="filterDWG">DWG Only</button>
+                    <button class="filter-btn" data-filter="other" id="filterOther">Other Files</button>
+                </div>
+            </div>
+
             <button class="run-checks-btn" id="runChecks">Run Checks</button>
+        </div>
+
+        <!-- Expected Values Section (QA-QC Tab Only) -->
+        <div class="expected-values-section" id="expectedValuesSection" style="display: none;">
+            <h2>Expected Values (for QA-QC Validation)</h2>
+            
+            <div class="expected-values-grid">
+                <div class="input-group">
+                    <label for="revisionCode">Expected Revision Code:</label>
+                    <input type="text" id="revisionCode" placeholder="e.g., P01">
+                </div>
+                
+                <div class="input-group">
+                    <label for="revisionDate">Expected Revision Date:</label>
+                    <input type="text" id="revisionDate" placeholder="e.g., 13.03.2025 or 13/03/25">
+                </div>
+                
+                <div class="input-group">
+                    <label for="suitabilityCode">Expected Suitability Code:</label>
+                    <input type="text" id="suitabilityCode" placeholder="e.g., S3">
+                </div>
+                
+                <div class="input-group">
+                    <label for="stageDescription">Expected Stage Description:</label>
+                    <input type="text" id="stageDescription" placeholder="e.g., Issued for Review">
+                </div>
+                
+                <div class="input-group">
+                    <label for="revisionDescription">Expected Revision Description:</label>
+                    <input type="text" id="revisionDescription" placeholder="e.g., Some description">
+                </div>
+                
+                <div class="input-group">
+                    <label for="separator">Separator (Sheet Number - Sheet Name):</label>
+                    <input type="text" id="separator" placeholder="e.g., ' - '" value=" - ">
+                </div>
+                
+                <div class="input-group checkbox-group">
+                    <label for="checkOnlySheetNumber">
+                        <input type="checkbox" id="checkOnlySheetNumber">
+                        Check only Sheet Number
+                    </label>
+                </div>
+            </div>
         </div>
 
         <!-- Summary Section -->
@@ -144,35 +198,75 @@
             </div>
             
             <div class="results-tabs">
-                <button class="tab active" data-tab="validation">Validation Report</button>
-                <button class="tab" data-tab="drawing-list">Check Drawing List</button>
+                <button class="tab active" data-tab="drawing-list">Check Drawing List</button>
                 <button class="tab" data-tab="naming">Naming Checker</button>
-                <button class="tab" data-tab="title-block">Title Block Errors</button>
+                <button class="tab" data-tab="validation">Deliverables QA-QC</button>
             </div>
 
             <div class="table-container">
-                <table id="resultsTable">
-                    <thead>
-                        <tr>
-                            <th>Sheet Number</th>
-                            <th>Sheet Name</th>
-                            <th>File Name</th>
-                            <th>Revision Code</th>
-                            <th>Revision Date</th>
-                            <th>Revision Description</th>
-                            <th>Suitability Code</th>
-                            <th>Stage Description</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Sample data will be populated by JavaScript -->
-                    </tbody>
-                </table>
+                <!-- Check Drawing List Tab -->
+                <div class="tab-content active" id="drawing-list">
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Excel Drawing Name</th>
+                                <th>Matched File Name</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="drawingListResults">
+                            <!-- Drawing list results will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Naming Checker Tab -->
+                <div class="tab-content" id="naming">
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Folder Path</th>
+                                <th>File Name</th>
+                                <th>Compliance Status</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="namingResults">
+                            <!-- Naming checker results will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Deliverables QA-QC Tab -->
+                <div class="tab-content" id="validation">
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Sheet Number</th>
+                                <th>Sheet Name</th>
+                                <th>File Name</th>
+                                <th>Revision Code</th>
+                                <th>Revision Date</th>
+                                <th>Revision Description</th>
+                                <th>Suitability Code</th>
+                                <th>Stage Description</th>
+                                <th>Naming Convention Status</th>
+                                <th>File Delivery Status</th>
+                                <th>Comments</th>
+                                <th>Result</th>
+                                <th>Mismatched Items</th>
+                            </tr>
+                        </thead>
+                        <tbody id="validationResults">
+                            <!-- QA-QC validation results will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

@@ -151,6 +151,107 @@ h2 {
     background: #c19a47;
 }
 
+/* File Filter Section */
+.file-filter-section {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.file-filter-section h3 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    color: #495057;
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+.filter-btn:hover {
+    background: #5a6268;
+}
+
+.filter-btn.active {
+    background: #007bff;
+}
+
+.filter-btn.active:hover {
+    background: #0056b3;
+}
+
+/* Expected Values Section */
+.expected-values-section {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 30px;
+}
+
+.expected-values-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.input-group label {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #495057;
+    font-size: 14px;
+}
+
+.input-group input[type="text"] {
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.input-group input[type="text"]:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.checkbox-group {
+    flex-direction: row;
+    align-items: center;
+}
+
+.checkbox-group label {
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+    margin-right: 8px;
+}
+
 /* Summary Section */
 .summary-section {
     background: white;
@@ -280,6 +381,7 @@ h2 {
     color: #6c757d;
     border-bottom: 3px solid transparent;
     transition: all 0.3s ease;
+    font-weight: 500;
 }
 
 .tab:hover {
@@ -291,10 +393,44 @@ h2 {
     color: #007bff;
     border-bottom-color: #007bff;
     background: #f8f9fa;
+    font-weight: 600;
 }
 
 .table-container {
     overflow-x: auto;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.results-table th,
+.results-table td {
+    padding: 12px 8px;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.results-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    position: sticky;
+    top: 0;
+}
+
+.results-table tr:hover {
+    background: #f8f9fa;
 }
 
 table {
