@@ -165,11 +165,8 @@ function initializeEventListeners() {
     document.getElementById('namingRulesFile').addEventListener('change', handleNamingFile);
     document.getElementById('titleBlocksFile').addEventListener('change', handleTitleBlocksFile);
     
-    // File filter buttons
-    document.getElementById('filterAll').addEventListener('click', () => setFileFilter('all'));
-    document.getElementById('filterPDF').addEventListener('click', () => setFileFilter('pdf'));
-    document.getElementById('filterDWG').addEventListener('click', () => setFileFilter('dwg'));
-    document.getElementById('filterOther').addEventListener('click', () => setFileFilter('other'));
+    // File filter dropdown
+    document.getElementById('fileTypeFilter').addEventListener('change', (e) => setFileFilter(e.target.value));
     
     // Run checks button
     document.getElementById('runChecks').addEventListener('click', runQualityChecksAdvanced);
@@ -820,12 +817,8 @@ function switchTab(targetTab) {
 }
 
 function setFileFilter(filterType) {
-    // Update filter buttons
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    document.getElementById(`filter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}`).classList.add('active');
+    // Update dropdown selection
+    document.getElementById('fileTypeFilter').value = filterType;
     
     selectedFileFilter = filterType;
     console.log('File filter set to:', filterType);

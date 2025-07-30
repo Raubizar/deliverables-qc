@@ -99,12 +99,12 @@
 
                     <div class="file-filter-section">
                         <h3>File Type Filter</h3>
-                        <div class="filter-buttons">
-                            <button class="filter-btn active" data-filter="all" id="filterAll">All Files</button>
-                            <button class="filter-btn" data-filter="pdf" id="filterPDF">PDF Only</button>
-                            <button class="filter-btn" data-filter="dwg" id="filterDWG">DWG Only</button>
-                            <button class="filter-btn" data-filter="other" id="filterOther">Other Files</button>
-                        </div>
+                        <select class="filter-dropdown" id="fileTypeFilter">
+                            <option value="all">All Files</option>
+                            <option value="pdf">PDF Only</option>
+                            <option value="dwg">DWG Only</option>
+                            <option value="other">Other Files</option>
+                        </select>
                     </div>
 
                     <button class="run-checks-btn" id="runChecks">Run Checks</button>
@@ -120,41 +120,43 @@
                         <p>For QA-QC Validation</p>
                     </div>
                     <div class="section-content">
-                        <div class="input-group">
-                            <label for="revisionCode">Expected Revision Code:</label>
-                            <input type="text" id="revisionCode" placeholder="e.g., P01">
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="revisionDate">Expected Revision Date:</label>
-                            <input type="text" id="revisionDate" placeholder="e.g., 13.03.2025 or 13/03/25">
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="suitabilityCode">Expected Suitability Code:</label>
-                            <input type="text" id="suitabilityCode" placeholder="e.g., S3">
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="stageDescription">Expected Stage Description:</label>
-                            <input type="text" id="stageDescription" placeholder="e.g., Issued for Review">
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="revisionDescription">Expected Revision Description:</label>
-                            <input type="text" id="revisionDescription" placeholder="e.g., Some description">
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="separator">Separator (Sheet Number - Sheet Name):</label>
-                            <input type="text" id="separator" placeholder="e.g., ' - '" value=" - ">
-                        </div>
-                        
-                        <div class="input-group checkbox-group">
-                            <label for="checkOnlySheetNumber">
-                                <input type="checkbox" id="checkOnlySheetNumber">
-                                Check only Sheet Number
-                            </label>
+                        <div class="expected-values-grid">
+                            <div class="input-group">
+                                <label for="revisionCode">Expected Revision Code:</label>
+                                <input type="text" id="revisionCode" placeholder="e.g., P01">
+                            </div>
+                            
+                            <div class="input-group">
+                                <label for="revisionDate">Expected Revision Date:</label>
+                                <input type="text" id="revisionDate" placeholder="e.g., 13.03.2025 or 13/03/25">
+                            </div>
+                            
+                            <div class="input-group">
+                                <label for="suitabilityCode">Expected Suitability Code:</label>
+                                <input type="text" id="suitabilityCode" placeholder="e.g., S3">
+                            </div>
+                            
+                            <div class="input-group">
+                                <label for="stageDescription">Expected Stage Description:</label>
+                                <input type="text" id="stageDescription" placeholder="e.g., Issued for Review">
+                            </div>
+                            
+                            <div class="input-group">
+                                <label for="revisionDescription">Expected Revision Description:</label>
+                                <input type="text" id="revisionDescription" placeholder="e.g., Some description">
+                            </div>
+                            
+                            <div class="input-group">
+                                <label for="separator">Separator (Sheet Number - Sheet Name):</label>
+                                <input type="text" id="separator" placeholder="e.g., ' - '" value=" - ">
+                            </div>
+                            
+                            <div class="input-group checkbox-group">
+                                <label for="checkOnlySheetNumber">
+                                    <input type="checkbox" id="checkOnlySheetNumber">
+                                    Check only Sheet Number
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -207,43 +209,61 @@
                         <p>Overview and metrics</p>
                     </div>
                     <div class="section-content">
-                        <div class="summary-grid">
-                            <div class="summary-item">
-                                <div class="summary-label">Drawings scanned</div>
-                                <div class="summary-value" id="drawingsScanned">95</div>
-                            </div>
-                            
-                            <div class="summary-item">
-                                <div class="summary-label">Drawings in Register</div>
-                                <div class="summary-value missing" id="drawingsInRegister">33 missing</div>
-                            </div>
-                            
-                            <div class="summary-item">
-                                <div class="summary-label">Naming compliance</div>
-                                <div class="summary-value-with-bar">
-                                    <span class="summary-value" id="namingCompliance">0% OK</span>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill red" style="width: 0%"></div>
+                        <div class="summary-dashboard-layout">
+                            <div class="summary-metrics">
+                                <div class="summary-item">
+                                    <div class="summary-label">Drawings scanned</div>
+                                    <div class="summary-value" id="drawingsScanned">95</div>
+                                </div>
+                                
+                                <div class="summary-item">
+                                    <div class="summary-label">Drawings in Register</div>
+                                    <div class="summary-value missing" id="drawingsInRegister">33 missing</div>
+                                </div>
+                                
+                                <div class="summary-item">
+                                    <div class="summary-label">Naming compliance</div>
+                                    <div class="summary-value-with-bar">
+                                        <span class="summary-value" id="namingCompliance">0% OK</span>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill red" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="summary-item">
+                                    <div class="summary-label">Title block compliance</div>
+                                    <div class="summary-value-with-bar">
+                                        <span class="summary-value" id="titleBlockCompliance">0% OK</span>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill red" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="summary-item">
+                                    <div class="summary-label">Overall compliance</div>
+                                    <div class="summary-value-with-bar">
+                                        <span class="summary-value" id="overallCompliance">0% OK</span>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill red" style="width: 0%"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                             
-                            <div class="summary-item">
-                                <div class="summary-label">Title block compliance</div>
-                                <div class="summary-value-with-bar">
-                                    <span class="summary-value" id="titleBlockCompliance">0% OK</span>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill red" style="width: 0%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="summary-item">
-                                <div class="summary-label">Overall compliance</div>
-                                <div class="summary-value-with-bar">
-                                    <span class="summary-value" id="overallCompliance">0% OK</span>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill red" style="width: 0%"></div>
+                            <div class="summary-chart">
+                                <div class="chart-container">
+                                    <canvas id="complianceChart" width="150" height="150"></canvas>
+                                    <div class="chart-legend">
+                                        <div class="legend-item">
+                                            <span class="legend-color ok"></span>
+                                            <span>Compliant</span>
+                                        </div>
+                                        <div class="legend-item">
+                                            <span class="legend-color error"></span>
+                                            <span>Non-compliant</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
