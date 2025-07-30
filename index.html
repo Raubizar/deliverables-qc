@@ -1,13 +1,178 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Deliverables QC</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drawing QC</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Drawing QC</h1>
+        
+        <!-- Input Files Section -->
+        <div class="input-files-section">
+            <h2>📁 Input Files</h2>
+            
+            <div class="file-input-row">
+                <div class="file-input-item">
+                    <div class="file-input-box">
+                        <span class="file-icon">📁</span>
+                        <div class="file-input-content">
+                            <input type="file" id="selectFolder" webkitdirectory directory multiple>
+                            <label for="selectFolder" class="file-label">
+                                <span class="file-action">Select Folder</span>
+                                <span class="file-description">Root folder of files</span>
+                            </label>
+                        </div>
+                        <button class="choose-btn" onclick="document.getElementById('selectFolder').click()">Choose Folder</button>
+                    </div>
+                    <div class="file-status">
+                        <span class="checkmark">✓</span>
+                        <span class="status-text">Selected: Drawings</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="file-input-row">
+                <div class="file-input-item">
+                    <div class="file-input-box">
+                        <span class="file-icon">📋</span>
+                        <div class="file-input-content">
+                            <input type="file" id="registerFile" accept=".xlsx,.xls">
+                            <label for="registerFile" class="file-label">
+                                <span class="file-action">Registerdata</span>
+                                <span class="file-description">Drawing register</span>
+                            </label>
+                        </div>
+                        <button class="choose-btn" onclick="document.getElementById('registerFile').click()">Choose File</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="file-input-row">
+                <div class="file-input-item">
+                    <div class="file-input-box">
+                        <span class="file-icon">📝</span>
+                        <div class="file-input-content">
+                            <input type="file" id="namingRulesFile" accept=".xlsx,.xls">
+                            <label for="namingRulesFile" class="file-label">
+                                <span class="file-action">Naming Rules.xlsx</span>
+                                <span class="file-description">Allowed file name parameters</span>
+                            </label>
+                        </div>
+                        <button class="choose-btn" onclick="document.getElementById('namingRulesFile').click()">Choose File</button>
+                    </div>
+                    <div class="file-note">🟡</div>
+                </div>
+            </div>
+
+            <div class="file-input-row">
+                <div class="file-input-item">
+                    <div class="file-input-box">
+                        <span class="file-icon">🏷️</span>
+                        <div class="file-input-content">
+                            <input type="file" id="titleBlocksFile" accept=".xlsx,.xls">
+                            <label for="titleBlocksFile" class="file-label">
+                                <span class="file-action">Title Blocks.xlsx</span>
+                                <span class="file-description">Title block export</span>
+                            </label>
+                        </div>
+                        <button class="choose-btn" onclick="document.getElementById('titleBlocksFile').click()">Choose File</button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="run-checks-btn" id="runChecks">Run Checks</button>
+        </div>
+
+        <!-- Summary Section -->
+        <div class="summary-section">
+            <h2>Summary</h2>
+            
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="summary-label">Drawings scanned</div>
+                    <div class="summary-value" id="drawingsScanned">95</div>
+                </div>
+                
+                <div class="summary-item">
+                    <div class="summary-label">Drawings in Register</div>
+                    <div class="summary-value missing" id="drawingsInRegister">33 missing</div>
+                </div>
+                
+                <div class="summary-item">
+                    <div class="summary-label">Naming compliance</div>
+                    <div class="summary-value-with-bar">
+                        <span class="summary-value" id="namingCompliance">0% OK</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill red" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="summary-item">
+                    <div class="summary-label">Title block compliance</div>
+                    <div class="summary-value-with-bar">
+                        <span class="summary-value" id="titleBlockCompliance">0% OK</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill red" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="summary-item">
+                    <div class="summary-label">Overall compliance</div>
+                    <div class="summary-value-with-bar">
+                        <span class="summary-value" id="overallCompliance">0% OK</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill red" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section">
+            <div class="results-header">
+                <h2>Results</h2>
+                <div class="results-controls">
+                    <input type="text" placeholder="Search results..." class="search-input">
+                    <button class="download-btn">📥 Download XLSX Report</button>
+                </div>
+            </div>
+            
+            <div class="results-tabs">
+                <button class="tab active" data-tab="validation">Validation Report</button>
+                <button class="tab" data-tab="drawing-list">Check Drawing List</button>
+                <button class="tab" data-tab="naming">Naming Checker</button>
+                <button class="tab" data-tab="title-block">Title Block Errors</button>
+            </div>
+
+            <div class="table-container">
+                <table id="resultsTable">
+                    <thead>
+                        <tr>
+                            <th>Sheet Number</th>
+                            <th>Sheet Name</th>
+                            <th>File Name</th>
+                            <th>Revision Code</th>
+                            <th>Revision Date</th>
+                            <th>Revision Description</th>
+                            <th>Suitability Code</th>
+                            <th>Stage Description</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Sample data will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
 </html>
