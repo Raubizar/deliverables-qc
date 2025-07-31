@@ -365,8 +365,10 @@ function checkNamingCompliance(files) {
         return files.map(file => ({
             folderPath: extractFolderPath(file),
             fileName: file.name,
+            highlightedFileName: file.name, // No highlighting for "No Rules"
             status: 'No Rules',
-            details: 'No naming convention loaded'
+            details: 'No naming convention loaded',
+            hasErrors: false
         }));
     }
 
@@ -376,8 +378,10 @@ function checkNamingCompliance(files) {
         return {
             folderPath: extractFolderPath(file),
             fileName: file.name,
+            highlightedFileName: analysis.highlightedFileName,
             status: analysis.compliance,
-            details: analysis.details
+            details: analysis.details,
+            hasErrors: analysis.hasErrors
         };
     });
 }
@@ -394,7 +398,9 @@ function analyzeFileNameAgainstRules(fileName) {
     if (!namingRulesData || !namingRulesData.Sheets) {
         return { 
             compliance: 'No Rules', 
-            details: 'No naming convention loaded. Please upload naming rules file.' 
+            details: 'No naming convention loaded. Please upload naming rules file.',
+            highlightedFileName: fileName,
+            hasErrors: false
         };
     }
 
@@ -405,7 +411,9 @@ function analyzeFileNameAgainstRules(fileName) {
     if (!namingTab || namingTab.length === 0) {
         return {
             compliance: 'Wrong',
-            details: 'No naming convention data available.'
+            details: 'No naming convention data available.',
+            highlightedFileName: fileName,
+            hasErrors: false
         };
     }
 
@@ -418,7 +426,7 @@ function analyzeFileNameAgainstRules(fileName) {
         console.log('❌ Delimiter not found in cell D1');
         console.log('- namingTab[0]:', namingTab[0]);
         console.log('- namingTab[0][3]:', namingTab[0] ? namingTab[0][3] : 'undefined');
-        return { compliance: 'Wrong', details: 'Invalid or missing delimiter in naming convention' };
+        return { compliance: 'Wrong', details: 'Invalid or missing delimiter in naming convention', highlightedFileName: fileName, hasErrors: false };
     }
 
     // Get number of parts from cell B1 (row 1, column B = index [0][1])
@@ -427,7 +435,7 @@ function analyzeFileNameAgainstRules(fileName) {
         console.log('❌ Number of parts not found in cell B1');
         console.log('- namingTab[0]:', namingTab[0]);
         console.log('- namingTab[0][1]:', namingTab[0] ? namingTab[0][1] : 'undefined');
-        return { compliance: 'Wrong', details: 'Invalid or missing number of parts in naming convention' };
+        return { compliance: 'Wrong', details: 'Invalid or missing number of parts in naming convention', highlightedFileName: fileName, hasErrors: false };
     }
 
     console.log('Delimiter:', delimiter);
@@ -449,12 +457,15 @@ function analyzeFileNameAgainstRules(fileName) {
         console.log(`❌ Part count mismatch: expected ${expectedPartCount}, got ${nameParts.length}`);
         return { 
             compliance: 'Wrong', 
-            details: `Expected ${expectedPartCount} parts, got ${nameParts.length} parts` 
+            details: `Expected ${expectedPartCount} parts, got ${nameParts.length} parts`,
+            highlightedFileName: `<span style="color: #ef4444; font-weight: bold;">${fileNameWithoutExt}</span>`,
+            hasErrors: true
         };
     }
 
     // Validate each part against its column
     let nonCompliantParts = [];
+    let invalidPartIndices = []; // Track which parts are invalid for highlighting
 
     for (let i = 0; i < nameParts.length; i++) {
         const currentPart = nameParts[i];
@@ -525,15 +536,41 @@ function analyzeFileNameAgainstRules(fileName) {
         if (!partIsValid) {
             console.log(`❌ Part ${i + 1} (${currentPart}) is not valid`);
             nonCompliantParts.push(`Part ${i + 1} (${currentPart}) is not valid`);
+            invalidPartIndices.push(i); // Track invalid part index
         }
     }
 
+    // Create highlighted file name for display
+    let highlightedFileName = fileNameWithoutExt;
+    if (invalidPartIndices.length > 0) {
+        // Split and rebuild with highlighting
+        const parts = fileNameWithoutExt.split(delimiter);
+        highlightedFileName = parts.map((part, index) => {
+            if (invalidPartIndices.includes(index)) {
+                return `<span style="color: #ef4444; font-weight: bold;">${part}</span>`;
+            }
+            return part;
+        }).join(delimiter);
+    }
+
+    // Create highlighted details
+    let highlightedDetails = nonCompliantParts.length === 0 
+        ? 'Delimiter correct; Number of parts correct;' 
+        : nonCompliantParts.map(detail => {
+            // Highlight the part in the detail message
+            return detail.replace(/\(([^)]+)\)/, '(<span style="color: #ef4444; font-weight: bold;">$1</span>)');
+          }).join('; ');
+
     // Determine compliance
     const compliance = nonCompliantParts.length === 0 ? 'Ok' : 'Wrong';
-    const details = nonCompliantParts.length === 0 ? 'Delimiter correct; Number of parts correct;' : nonCompliantParts.join('; ');
     
-    console.log('Final result:', compliance, details);
-    return { compliance, details };
+    console.log('Final result:', compliance, highlightedDetails);
+    return { 
+        compliance, 
+        details: highlightedDetails,
+        highlightedFileName: highlightedFileName,
+        hasErrors: invalidPartIndices.length > 0
+    };
 }
 
 function checkQAQC(files) {
@@ -660,7 +697,7 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
     namingTable.innerHTML = namingResults.map(result => `
         <tr>
             <td>${result.folderPath}</td>
-            <td>${result.fileName}</td>
+            <td>${result.highlightedFileName || result.fileName}</td>
             <td><span class="status-badge ${result.status === 'Ok' ? 'success' : result.status === 'OK' ? 'success' : result.status === 'WARNING' ? 'warning' : 'error'}">${result.status}</span></td>
             <td>${result.details}</td>
         </tr>
