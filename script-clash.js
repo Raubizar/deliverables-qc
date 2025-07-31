@@ -153,6 +153,11 @@ function handleNamingRulesFile(event) {
     const file = event.target.files[0];
     if (!file) return;
 
+    console.log('=== NAMING RULES FILE SELECTED ===');
+    console.log('File name:', file.name);
+    console.log('File size:', file.size);
+    console.log('File type:', file.type);
+
     updateFileStatus('namingStatus', `Selected: ${file.name}`, 'success');
     processExcelFile(file, 'naming');
     
@@ -193,17 +198,29 @@ function showExpectedValues() {
 // Excel Processing
 async function processExcelFile(file, type) {
     try {
+        console.log(`=== PROCESSING EXCEL FILE (${type.toUpperCase()}) ===`);
+        console.log('File name:', file.name);
+        
         const data = await file.arrayBuffer();
         const workbook = XLSX.read(data, { type: 'array' });
+        
+        console.log('Workbook loaded successfully');
+        console.log('Sheet names:', workbook.SheetNames);
         
         if (type === 'register') {
             window.currentRegisterWorkbook = workbook;
             populateSheetSelector(workbook);
         } else if (type === 'naming') {
+            console.log('Processing naming rules...');
             namingRulesData = processNamingRules(workbook);
+            console.log('Final namingRulesData:', namingRulesData);
+            console.log('namingRulesData.Sheets exists:', !!namingRulesData.Sheets);
+            console.log('namingRulesData.Sheets length:', namingRulesData.Sheets ? namingRulesData.Sheets.length : 'N/A');
         } else if (type === 'titleBlocks') {
             titleBlockData = processTitleBlocks(workbook);
         }
+        
+        console.log(`=== EXCEL FILE PROCESSING COMPLETE (${type.toUpperCase()}) ===`);
         
     } catch (error) {
         console.error('Error processing Excel file:', error);
@@ -337,7 +354,14 @@ function compareDrawingList(excelNames, folderFiles) {
 }
 
 function checkNamingCompliance(files) {
-    if (!namingRulesData || namingRulesData.length === 0) {
+    console.log('=== CHECKING NAMING COMPLIANCE ===');
+    console.log('namingRulesData:', namingRulesData);
+    console.log('namingRulesData type:', typeof namingRulesData);
+    console.log('namingRulesData.Sheets exists:', !!namingRulesData?.Sheets);
+    console.log('namingRulesData.Sheets length:', namingRulesData?.Sheets?.length);
+    
+    if (!namingRulesData || !namingRulesData.Sheets || namingRulesData.Sheets.length === 0) {
+        console.log('❌ No naming rules available');
         return files.map(file => ({
             folderPath: extractFolderPath(file),
             fileName: file.name,
@@ -346,6 +370,7 @@ function checkNamingCompliance(files) {
         }));
     }
 
+    console.log('✓ Naming rules available, processing files...');
     return files.map(file => {
         const analysis = analyzeFileNameAgainstRules(file.name);
         return {
@@ -366,91 +391,149 @@ function extractFolderPath(file) {
 }
 
 function analyzeFileNameAgainstRules(fileName) {
-    if (!namingRulesData || !namingRulesData.Sheets || !namingRulesData.Models) {
+    if (!namingRulesData || !namingRulesData.Sheets) {
         return { 
             compliance: 'No Rules', 
             details: 'No naming convention loaded. Please upload naming rules file.' 
         };
     }
 
-    // Extract file extension
-    const dotPosition = fileName.lastIndexOf('.');
-    const extension = fileName.slice(dotPosition + 1).toLowerCase();
-    const isModel = ['rvt', 'nwd', 'nwf', 'ifc', 'nwc'].includes(extension);
+    console.log('=== ANALYZING FILE NAME ===');
+    console.log('File name:', fileName);
 
-    // Select the appropriate tab (Sheets or Models)
-    const namingTab = isModel ? namingRulesData.Models : namingRulesData.Sheets;
+    const namingTab = namingRulesData.Sheets;
     if (!namingTab || namingTab.length === 0) {
         return {
             compliance: 'Wrong',
-            details: `No naming convention data available for file type: ${extension}.`
+            details: 'No naming convention data available.'
         };
     }
 
-    // Get delimiter from line 1, column D (index 3)
-    const delimiter = namingTab[0] && namingTab[0][3];
+    console.log('Using naming tab with', namingTab.length, 'rows');
+    console.log('First few rows of naming tab:', namingTab.slice(0, 5));
+
+    // Get delimiter from cell D1 (row 1, column D = index [0][3])
+    const delimiter = namingTab[0] && namingTab[0][3] ? namingTab[0][3] : null;
     if (!delimiter || typeof delimiter !== 'string') {
-        return {
-            compliance: 'Wrong',
-            details: `Invalid or missing delimiter in naming convention.`
+        console.log('❌ Delimiter not found in cell D1');
+        console.log('- namingTab[0]:', namingTab[0]);
+        console.log('- namingTab[0][3]:', namingTab[0] ? namingTab[0][3] : 'undefined');
+        return { compliance: 'Wrong', details: 'Invalid or missing delimiter in naming convention' };
+    }
+
+    // Get number of parts from cell B1 (row 1, column B = index [0][1])
+    const expectedPartCount = namingTab[0] && namingTab[0][1] ? parseInt(namingTab[0][1]) : null;
+    if (!expectedPartCount || isNaN(expectedPartCount)) {
+        console.log('❌ Number of parts not found in cell B1');
+        console.log('- namingTab[0]:', namingTab[0]);
+        console.log('- namingTab[0][1]:', namingTab[0] ? namingTab[0][1] : 'undefined');
+        return { compliance: 'Wrong', details: 'Invalid or missing number of parts in naming convention' };
+    }
+
+    console.log('Delimiter:', delimiter);
+    console.log('Expected parts:', expectedPartCount);
+
+    // Remove extension from file name
+    const dotPosition = fileName.lastIndexOf('.');
+    const fileNameWithoutExt = dotPosition > 0 ? fileName.substring(0, dotPosition) : fileName;
+
+    console.log("File name without extension:", fileNameWithoutExt);
+
+    // Split file name into parts using the delimiter
+    const nameParts = fileNameWithoutExt.split(delimiter);
+    console.log('File parts:', nameParts);
+    console.log('Parts count:', nameParts.length);
+
+    // Check if number of parts matches
+    if (nameParts.length !== expectedPartCount) {
+        console.log(`❌ Part count mismatch: expected ${expectedPartCount}, got ${nameParts.length}`);
+        return { 
+            compliance: 'Wrong', 
+            details: `Expected ${expectedPartCount} parts, got ${nameParts.length} parts` 
         };
     }
 
-    // Remove extension from filename for analysis
-    let fileNameWithoutExt = fileName;
-    if (dotPosition > 0) {
-        fileNameWithoutExt = fileName.substring(0, dotPosition);
-    }
-
-    // Split filename into parts using the delimiter
-    const nameParts = fileNameWithoutExt.split(delimiter);
-    
-    // Validate each part against naming rules
+    // Validate each part against its column
     let nonCompliantParts = [];
-    let details = '';
-    
+
     for (let i = 0; i < nameParts.length; i++) {
-        // Get allowed parts for this position (skip header rows, start from row 2)
-        const allowedParts = namingTab.slice(2).map(row => row[i + 1]).filter(part => part); // Skip empty cells
-        
-        let partAllowed = false;
         const currentPart = nameParts[i];
         
-        // Check each allowed pattern for this position
-        for (let allowed of allowedParts) {
-            if (allowed === 'Var') {
-                // Variable part - any value is allowed
-                partAllowed = true;
-                break;
-            } else if (allowed && allowed.includes('+N')) {
-                // Prefix pattern (e.g., "A+N" means starts with "A" followed by numbers)
-                const prefix = allowed.split('+')[0];
-                if (currentPart.startsWith(prefix)) {
-                    partAllowed = true;
+        // Get allowed values for this part from column i (Part 1 = Column A = index 0)
+        // Starting from row 2 (index 1), collect all non-empty values in column i
+        const allowedValues = namingTab.slice(1)  // Skip row 1 (metadata), start from row 2
+            .map(row => row[i])  // Get column i (Part 1 = Column A = index 0)
+            .filter(val => val !== undefined && val !== null && val !== '');
+
+        console.log(`Validating part ${i + 1} (${currentPart}) against column ${String.fromCharCode(65 + i)}:`, allowedValues);
+
+        let partIsValid = false;
+
+        // Check each allowed value for this part
+        for (const allowedValue of allowedValues) {
+            const allowed = String(allowedValue).trim();
+            
+            if (!allowed) continue;
+
+            // Rule 1: If allowed value is just a number, part must be exactly that many digits
+            if (/^\d+$/.test(allowed)) {
+                const requiredDigits = parseInt(allowed);
+                if (/^\d+$/.test(currentPart) && currentPart.length === requiredDigits) {
+                    partIsValid = true;
+                    console.log(`✓ Part ${i + 1} matches digit rule: ${currentPart} has ${requiredDigits} digits`);
                     break;
                 }
-            } else if (allowed === currentPart) {
-                // Exact match
-                partAllowed = true;
+            }
+            
+            // Rule 2: If allowed value is "Description", part must be alphanumeric with min 3 chars
+            else if (allowed.toLowerCase() === 'description') {
+                if (currentPart.length >= 3) {
+                    partIsValid = true;
+                    console.log(`✓ Part ${i + 1} matches description rule: ${currentPart}`);
+                    break;
+                }
+            }
+            
+            // Rule 3: Exact match against allowed text values
+            else if (allowed === currentPart) {
+                partIsValid = true;
+                console.log(`✓ Part ${i + 1} exact match: ${currentPart}`);
+                break;
+            }
+            
+            // Rule 4: Handle +N patterns (e.g., "LPL+N" means "LPL" followed by numbers)
+            else if (allowed.includes('+N')) {
+                const prefix = allowed.split('+')[0];
+                if (currentPart.startsWith(prefix)) {
+                    const suffix = currentPart.substring(prefix.length);
+                    if (/^\d+$/.test(suffix)) {
+                        partIsValid = true;
+                        console.log(`✓ Part ${i + 1} matches +N pattern: ${currentPart}`);
+                        break;
+                    }
+                }
+            }
+            
+            // Rule 5: Variable part - anything is allowed
+            else if (allowed.toLowerCase() === 'var') {
+                partIsValid = true;
+                console.log(`✓ Part ${i + 1} matches variable rule: ${currentPart}`);
                 break;
             }
         }
-        
-        if (!partAllowed) {
-            details += `Part ${i + 1} (${currentPart}) is not valid; `;
-            nonCompliantParts.push(currentPart);
+
+        if (!partIsValid) {
+            console.log(`❌ Part ${i + 1} (${currentPart}) is not valid`);
+            nonCompliantParts.push(`Part ${i + 1} (${currentPart}) is not valid`);
         }
     }
 
-    // Determine overall compliance
-    const compliance = nonCompliantParts.length > 0 ? 'Wrong' : 'OK';
-    details = details.trim().replace(/; $/, '') || 'Follows naming convention';
+    // Determine compliance
+    const compliance = nonCompliantParts.length === 0 ? 'Ok' : 'Wrong';
+    const details = nonCompliantParts.length === 0 ? 'Delimiter correct; Number of parts correct;' : nonCompliantParts.join('; ');
     
-    return { 
-        compliance, 
-        details, 
-        nonCompliantParts 
-    };
+    console.log('Final result:', compliance, details);
+    return { compliance, details };
 }
 
 function checkQAQC(files) {
@@ -930,31 +1013,50 @@ function showNotification(message, type) {
 // Processing helper functions (simplified versions)
 function processNamingRules(workbook) {
     try {
+        console.log('=== PROCESSING NAMING RULES ===');
+        console.log('Workbook sheet names:', workbook.SheetNames);
+        
         // The naming convention file should have two tabs: 'Sheets' and 'Models'
         const namingConvention = {};
         
         // Process Sheets tab
         if (workbook.Sheets['Sheets']) {
             namingConvention.Sheets = XLSX.utils.sheet_to_json(workbook.Sheets['Sheets'], { header: 1 });
-            console.log('Loaded Sheets tab:', namingConvention.Sheets);
+            console.log('✓ Loaded Sheets tab with', namingConvention.Sheets.length, 'rows');
+            console.log('First 3 rows of Sheets data:', namingConvention.Sheets.slice(0, 3));
+            console.log('Expected structure:');
+            console.log('- Row 1: [Number of parts, 11, Delimiter, -, ...]');
+            console.log('- Row 2: Headers like [NL, AMS1, E, PH01, NTT, L0, A, LPL-N, AF, ...]');
+            console.log('- Row 3+: Allowed values for each position');
+            console.log('Sheets data loaded - parts count:', namingConvention.Sheets[0] ? namingConvention.Sheets[0][1] : 'Not found');
+            console.log('Sheets delimiter (row 1, col D):', namingConvention.Sheets[0] ? namingConvention.Sheets[0][3] : 'Not found');
         } else {
-            console.warn('No "Sheets" tab found in naming convention file');
-            namingConvention.Sheets = [];
+            console.warn('❌ No "Sheets" tab found in naming convention file');
+            console.log('Available sheets:', workbook.SheetNames);
+            // Try to use the first sheet if no "Sheets" tab
+            if (workbook.SheetNames.length > 0) {
+                const firstSheetName = workbook.SheetNames[0];
+                console.log('Using first sheet instead:', firstSheetName);
+                namingConvention.Sheets = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { header: 1 });
+                console.log('✓ Loaded first sheet with', namingConvention.Sheets.length, 'rows');
+            } else {
+                namingConvention.Sheets = [];
+            }
         }
         
-        // Process Models tab
-        if (workbook.Sheets['Models']) {
-            namingConvention.Models = XLSX.utils.sheet_to_json(workbook.Sheets['Models'], { header: 1 });
-            console.log('Loaded Models tab:', namingConvention.Models);
-        } else {
-            console.warn('No "Models" tab found in naming convention file');
-            namingConvention.Models = [];
+        // Process Models tab - skip this as requested
+        console.log('Skipping Models tab as requested');
+        namingConvention.Models = [];
+        
+        // Validate that we have Sheets data
+        if (!namingConvention.Sheets || namingConvention.Sheets.length === 0) {
+            throw new Error('No valid naming convention data found in Sheets tab. Please ensure the Excel file has valid data.');
         }
         
-        // Validate that we have at least one tab with data
-        if (namingConvention.Sheets.length === 0 && namingConvention.Models.length === 0) {
-            throw new Error('No valid naming convention data found. Please ensure the file has "Sheets" and/or "Models" tabs.');
-        }
+        console.log('✓ Final naming convention structure:');
+        console.log('- Sheets rows:', namingConvention.Sheets.length);
+        console.log('- Models rows:', namingConvention.Models.length);
+        console.log('=== NAMING RULES PROCESSING COMPLETE ===');
         
         showNotification('Naming convention loaded successfully', 'success');
         return namingConvention;
