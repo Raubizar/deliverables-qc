@@ -29,14 +29,7 @@
                 <div class="action-bar">
                     <div class="primary-actions">
                         <button class="btn-primary" id="selectFiles">📁 Select Files</button>
-                        <button class="btn-secondary" id="downloadExport">📊 Export</button>
                     </div>
-                    <select class="btn-secondary" id="fileTypeFilter" style="width: 100%;">
-                        <option value="all">All Files</option>
-                        <option value="pdf">PDF Only</option>
-                        <option value="dwg">DWG Only</option>
-                        <option value="other">Other Files</option>
-                    </select>
                     <button class="btn-primary" id="runChecks" style="width: 100%; margin-top: 8px;">Run Checks</button>
                 </div>
 
@@ -85,9 +78,9 @@
                     <input type="file" id="titleBlocksFile" accept=".xlsx,.xls">
                 </div>
 
-                <!-- Excel Configuration -->
+                <!-- Naming Rules Settings -->
                 <div class="inline-controls" id="excelConfig" style="display: none;">
-                    <h3>📊 Excel Configuration</h3>
+                    <h3>� Naming Rules Settings</h3>
                     <div class="inline-row">
                         <label>Sheet:</label>
                         <select id="registerSheetSelect">
@@ -100,17 +93,14 @@
                             <option value="">Select column...</option>
                         </select>
                     </div>
-                    <div style="font-size: 11px; color: #64748b; margin-top: 8px;" id="configPreview">
-                        Upload register file to configure
-                    </div>
                 </div>
 
                 <!-- Expected Values -->
-                <div class="file-inputs" id="expectedValues" style="display: none;">
+                <div class="expected-values-card">
                     <h3>🎯 Expected Values</h3>
                     
-                    <!-- Compact 3-column grid layout -->
-                    <div class="expected-values-grid">
+                    <!-- Compact single-line layout -->
+                    <div class="expected-values-compact">
                         <div class="input-compact">
                             <label>Rev Code >=</label>
                             <input type="text" id="expectedRevCode" placeholder="P01">
@@ -123,22 +113,22 @@
                             <label>Suitability</label>
                             <input type="text" id="expectedSuitability" placeholder="S3">
                         </div>
-                        <div class="input-compact span-2">
-                            <label>Stage Description</label>
+                        <div class="input-compact">
+                            <label>Stage</label>
                             <input type="text" id="expectedStage" placeholder="Issued for Review">
                         </div>
                         <div class="input-compact">
-                            <label>Separator</label>
-                            <input type="text" id="separator" value=" - " placeholder="-">
-                        </div>
-                        <div class="input-compact span-3">
-                            <label>Revision Description</label>
+                            <label>Rev Desc</label>
                             <input type="text" id="expectedRevDesc" placeholder="Description">
                         </div>
-                        <div class="checkbox-compact span-3">
+                        <div class="input-compact">
+                            <label>Sep</label>
+                            <input type="text" id="separator" value=" - " placeholder="-">
+                        </div>
+                        <div class="checkbox-compact">
                             <label>
                                 <input type="checkbox" id="checkSheetOnly"> 
-                                Check only Sheet Number
+                                Sheet Only
                             </label>
                         </div>
                     </div>
@@ -200,6 +190,12 @@
                     <div class="results-header">
                         <h2>Detailed Results</h2>
                         <div class="results-controls">
+                            <select id="fileTypeFilter" style="padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 12px; margin-right: 8px;">
+                                <option value="all">All Files</option>
+                                <option value="pdf">PDF Only</option>
+                                <option value="dwg">DWG Only</option>
+                                <option value="other">Other Files</option>
+                            </select>
                             <input type="text" placeholder="Search results..." id="searchInput" 
                                    style="padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 12px;">
                             <button class="btn-secondary" id="downloadXLSX">📊 Export XLSX</button>

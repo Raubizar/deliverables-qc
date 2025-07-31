@@ -812,8 +812,12 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
         const hasRevisionError = result.issues && result.issues.includes('Rev Code:');
         const revCodeClass = hasRevisionError ? 'revision-error' : '';
         
-        // Check naming compliance for this file
-        const namingStatus = checkFileNamingCompliance(result.fileName);
+        // Get naming status from naming checker results
+        const namingResult = namingResults.find(nr => nr.fileName === result.fileName);
+        const namingStatus = namingResult ? namingResult.compliance : 'Unknown';
+        const namingStatusClass = namingStatus === 'Ok' ? 'success' : 
+                                namingStatus === 'Warning' ? 'warning' : 'error';
+        
         const deliveryStatus = 'Delivered'; // Since file exists in folder
         
         return `
@@ -826,7 +830,7 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
                 <td>${result.revDescription}</td>
                 <td>${result.suitability}</td>
                 <td>${result.stage}</td>
-                <td><span class="status-badge ${namingStatus === 'OK' ? 'success' : namingStatus === 'Warning' ? 'warning' : 'error'}">${namingStatus}</span></td>
+                <td><span class="status-badge ${namingStatusClass}">${namingStatus}</span></td>
                 <td><span class="status-badge success">${deliveryStatus}</span></td>
                 <td></td>
                 <td><span class="status-badge ${result.result === 'PASS' ? 'success' : result.result === 'WARNING' ? 'warning' : 'error'}">${result.result}</span></td>
