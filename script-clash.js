@@ -11,6 +11,15 @@ let currentFilter = 'all';
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Initializing Drawing QC Application...');
     
+    // Add debugging helper to window for easy console access
+    window.debugTitleBlocks = function() {
+        console.log('=== DEBUG TITLE BLOCKS ===');
+        console.log('titleBlockData exists:', !!titleBlockData);
+        console.log('titleBlockData length:', titleBlockData ? titleBlockData.length : 'undefined');
+        console.log('titleBlockData content:', titleBlockData);
+        return titleBlockData;
+    };
+    
     try {
         initializeEventListeners();
         initializeCharts();
@@ -21,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 1000);
         
         console.log('Application initialized successfully');
+        console.log('Type "debugTitleBlocks()" in console to check title block data');
     } catch (error) {
         console.error('Error initializing application:', error);
     }
@@ -169,6 +179,11 @@ function handleTitleBlocksFile(event) {
     const file = event.target.files[0];
     if (!file) return;
 
+    console.log('=== TITLE BLOCKS FILE UPLOAD ===');
+    console.log('File name:', file.name);
+    console.log('File size:', file.size);
+    console.log('File type:', file.type);
+
     updateFileStatus('titleBlocksStatus', `Selected: ${file.name}`, 'success');
     processExcelFile(file, 'titleBlocks');
     
@@ -217,7 +232,11 @@ async function processExcelFile(file, type) {
             console.log('namingRulesData.Sheets exists:', !!namingRulesData.Sheets);
             console.log('namingRulesData.Sheets length:', namingRulesData.Sheets ? namingRulesData.Sheets.length : 'N/A');
         } else if (type === 'titleBlocks') {
+            console.log('Processing title blocks...');
             titleBlockData = processTitleBlocks(workbook);
+            console.log('Final titleBlockData:', titleBlockData);
+            console.log('titleBlockData length:', titleBlockData ? titleBlockData.length : 'N/A');
+            console.log('titleBlockData sample:', titleBlockData ? titleBlockData.slice(0, 2) : 'N/A');
         }
         
         console.log(`=== EXCEL FILE PROCESSING COMPLETE (${type.toUpperCase()}) ===`);
@@ -585,77 +604,150 @@ function checkQAQC(files) {
         checkSheetOnly: document.getElementById('checkSheetOnly')?.checked || false
     };
 
+    console.log('=== QA-QC VALIDATION ===');
+    console.log('Expected values:', expectedValues);
+    console.log('Title block data available:', titleBlockData?.length || 0, 'records');
+    console.log('Files to check:', files.length);
+    
+    // Debug title blocks data
+    debugTitleBlocks();
+
     return files.map(file => {
         const issues = [];
         const sheetNumber = extractSheetNumber(file.name);
+        const fileNameWithoutExt = stripExtension(file.name);
         
-        // Enhanced validation logic using expected values and titleBlockData
+        console.log(`\n--- Checking file: ${file.name} ---`);
+        console.log(`Sheet number extracted: "${sheetNumber}"`);
+        console.log(`File name without ext: "${fileNameWithoutExt}"`);
+        
+        let titleRecord = null;
+        
         if (titleBlockData && titleBlockData.length > 0) {
-            // Find matching record in title block data
-            const titleRecord = titleBlockData.find(record => 
-                normalizeText(record.fileName || '') === normalizeText(file.name) ||
-                normalizeText(record.sheetNumber || '') === normalizeText(sheetNumber)
-            );
+            console.log('Available title block records:');
+            titleBlockData.forEach((record, i) => {
+                if (i < 5) { // Only show first 5 for brevity
+                    console.log(`  ${i}: Sheet="${record.sheetNumber}", File="${record.fileName}"`);
+                }
+            });
+            
+            // Strategy 1: Exact file name match (most reliable)
+            titleRecord = titleBlockData.find(record => {
+                const match1 = normalizeText(record.fileName || '') === normalizeText(file.name);
+                const match2 = normalizeText(record.fileName || '') === normalizeText(fileNameWithoutExt);
+                if (match1 || match2) {
+                    console.log(`✓ Strategy 1 - File name match: "${record.fileName}" vs "${file.name}"`);
+                }
+                return match1 || match2;
+            });
+            
+            // Strategy 2: Sheet number match
+            if (!titleRecord && sheetNumber) {
+                titleRecord = titleBlockData.find(record => {
+                    const match = normalizeText(record.sheetNumber || '') === normalizeText(sheetNumber);
+                    if (match) {
+                        console.log(`✓ Strategy 2 - Sheet number match: "${record.sheetNumber}" vs "${sheetNumber}"`);
+                    }
+                    return match;
+                });
+            }
+            
+            // Strategy 3: Partial file name match
+            if (!titleRecord) {
+                titleRecord = titleBlockData.find(record => {
+                    const recordFileName = normalizeText(record.fileName || '');
+                    const searchFileName = normalizeText(fileNameWithoutExt);
+                    const match1 = recordFileName.includes(searchFileName) && searchFileName.length > 10;
+                    const match2 = searchFileName.includes(recordFileName) && recordFileName.length > 10;
+                    if (match1 || match2) {
+                        console.log(`✓ Strategy 3 - Partial match: "${recordFileName}" vs "${searchFileName}"`);
+                    }
+                    return match1 || match2;
+                });
+            }
+            
+            console.log('Final matched record:', titleRecord);
             
             if (titleRecord) {
-                // Validate against expected values
+                // Extract values from title record
+                const actualValues = {
+                    revisionCode: titleRecord.revisionCode || 'N/A',
+                    revisionDate: titleRecord.revisionDate || 'N/A', 
+                    revisionDescription: titleRecord.revisionDescription || 'N/A',
+                    suitabilityCode: titleRecord.suitabilityCode || 'N/A',
+                    stageDescription: titleRecord.stageDescription || 'N/A'
+                };
+                
+                console.log('Actual values from title block:', actualValues);
+                
+                // Only validate if expected values are provided
                 if (expectedValues.revisionCode && 
-                    normalizeText(titleRecord.revisionCode || '') !== normalizeText(expectedValues.revisionCode)) {
-                    issues.push(`Rev Code: expected "${expectedValues.revisionCode}", got "${titleRecord.revisionCode || 'N/A'}"`);
+                    normalizeText(actualValues.revisionCode) !== normalizeText(expectedValues.revisionCode)) {
+                    issues.push(`Rev Code: expected "${expectedValues.revisionCode}", got "${actualValues.revisionCode}"`);
                 }
                 
                 if (expectedValues.revisionDate && 
-                    normalizeDate(titleRecord.revisionDate || '') !== normalizeDate(expectedValues.revisionDate)) {
-                    issues.push(`Rev Date: expected "${expectedValues.revisionDate}", got "${titleRecord.revisionDate || 'N/A'}"`);
+                    normalizeDate(actualValues.revisionDate) !== normalizeDate(expectedValues.revisionDate)) {
+                    issues.push(`Rev Date: expected "${expectedValues.revisionDate}", got "${actualValues.revisionDate}"`);
                 }
                 
                 if (expectedValues.suitability && 
-                    normalizeText(titleRecord.suitabilityCode || '') !== normalizeText(expectedValues.suitability)) {
-                    issues.push(`Suitability: expected "${expectedValues.suitability}", got "${titleRecord.suitabilityCode || 'N/A'}"`);
+                    normalizeText(actualValues.suitabilityCode) !== normalizeText(expectedValues.suitability)) {
+                    issues.push(`Suitability: expected "${expectedValues.suitability}", got "${actualValues.suitabilityCode}"`);
                 }
                 
                 if (expectedValues.stage && 
-                    normalizeText(titleRecord.stageDescription || '') !== normalizeText(expectedValues.stage)) {
-                    issues.push(`Stage: expected "${expectedValues.stage}", got "${titleRecord.stageDescription || 'N/A'}"`);
+                    normalizeText(actualValues.stageDescription) !== normalizeText(expectedValues.stage)) {
+                    issues.push(`Stage: expected "${expectedValues.stage}", got "${actualValues.stageDescription}"`);
                 }
                 
                 if (expectedValues.revisionDesc && 
-                    normalizeText(titleRecord.revisionDescription || '') !== normalizeText(expectedValues.revisionDesc)) {
-                    issues.push(`Rev Desc: expected "${expectedValues.revisionDesc}", got "${titleRecord.revisionDescription || 'N/A'}"`);
+                    normalizeText(actualValues.revisionDescription) !== normalizeText(expectedValues.revisionDesc)) {
+                    issues.push(`Rev Desc: expected "${expectedValues.revisionDesc}", got "${actualValues.revisionDescription}"`);
                 }
                 
-                // Validate file naming convention
-                const expectedFileName = expectedValues.checkSheetOnly ? 
-                    titleRecord.sheetNumber : 
-                    `${titleRecord.sheetNumber}${expectedValues.separator}${titleRecord.sheetName}`;
-                
-                if (expectedFileName && normalizeText(stripExtension(file.name)) !== normalizeText(expectedFileName)) {
-                    issues.push(`File name: expected "${expectedFileName}", got "${stripExtension(file.name)}"`);
-                }
+                return {
+                    sheetNumber: titleRecord.sheetNumber || 'N/A',
+                    sheetName: titleRecord.sheetName || 'N/A',
+                    fileName: file.name,
+                    revCode: actualValues.revisionCode,
+                    revDate: actualValues.revisionDate,
+                    revDescription: actualValues.revisionDescription,
+                    suitability: actualValues.suitabilityCode,
+                    stage: actualValues.stageDescription,
+                    result: issues.length === 0 ? 'PASS' : 'FAIL',
+                    issues: issues.length > 0 ? issues.join('; ') : 'None'
+                };
             } else {
-                issues.push('No title block data found for this file');
+                console.log('❌ No matching title record found');
+                return {
+                    sheetNumber: sheetNumber || 'N/A',
+                    sheetName: 'N/A', 
+                    fileName: file.name,
+                    revCode: 'N/A',
+                    revDate: 'N/A',
+                    revDescription: 'N/A',
+                    suitability: 'N/A',
+                    stage: 'N/A',
+                    result: 'FAIL',
+                    issues: 'No title block data found for this file'
+                };
             }
         } else {
-            // Fallback to simplified random validation for demo
-            if (Math.random() > 0.6) {
-                const possibleIssues = [
-                    'Revision code mismatch',
-                    'Date format incorrect', 
-                    'Missing suitability code',
-                    'Stage description mismatch',
-                    'File naming non-compliant'
-                ];
-                issues.push(possibleIssues[Math.floor(Math.random() * possibleIssues.length)]);
-            }
+            console.log('❌ No title block data loaded');
+            return {
+                sheetNumber: sheetNumber || 'N/A',
+                sheetName: 'N/A',
+                fileName: file.name, 
+                revCode: 'N/A',
+                revDate: 'N/A',
+                revDescription: 'N/A',
+                suitability: 'N/A',
+                stage: 'N/A',
+                result: 'FAIL',
+                issues: 'No title block data loaded'
+            };
         }
-        
-        return {
-            sheetNumber: sheetNumber,
-            fileName: file.name,
-            result: issues.length === 0 ? 'PASS' : 'FAIL',
-            issues: issues.join('; ') || 'None',
-            expectedValues: expectedValues
-        };
     });
 }
 
@@ -705,12 +797,20 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
     
     // Update QA-QC table
     const qaqcTable = document.getElementById('qaqcResults');
+    console.log('=== UPDATING QA-QC TABLE ===');
+    console.log('titleBlockData in table update:', titleBlockData);
+    console.log('titleBlockData length:', titleBlockData ? titleBlockData.length : 'undefined');
+    
     qaqcTable.innerHTML = qaqcResults.map(result => {
+        console.log('Processing QA-QC result for file:', result.fileName);
+        
         // Extract title block data for display
-        const titleRecord = titleBlockData.find(record => 
+        const titleRecord = titleBlockData && titleBlockData.length > 0 ? titleBlockData.find(record => 
             normalizeText(record.fileName || '') === normalizeText(result.fileName) ||
             normalizeText(record.sheetNumber || '') === normalizeText(result.sheetNumber)
-        );
+        ) : null;
+        
+        console.log('Found title record for', result.fileName, ':', titleRecord);
         
         const sheetName = titleRecord?.sheetName || extractSheetName(result.fileName) || 'N/A';
         const revCode = titleRecord?.revisionCode || 'N/A';
@@ -943,6 +1043,29 @@ function extractSheetNumber(filename) {
     return `SHT-${Math.floor(Math.random() * 100)}`; // Fallback
 }
 
+function debugTitleBlocks() {
+    console.log('=== TITLE BLOCKS DEBUG ===');
+    console.log('titleBlockData exists:', !!titleBlockData);
+    console.log('titleBlockData length:', titleBlockData ? titleBlockData.length : 'undefined');
+    
+    if (titleBlockData && titleBlockData.length > 0) {
+        console.log('First 3 records:');
+        titleBlockData.slice(0, 3).forEach((record, i) => {
+            console.log(`Record ${i}:`, {
+                sheetNumber: record.sheetNumber,
+                sheetName: record.sheetName,
+                fileName: record.fileName,
+                revisionCode: record.revisionCode,
+                revisionDate: record.revisionDate,
+                suitabilityCode: record.suitabilityCode
+            });
+        });
+        
+        console.log('All sheet numbers:', titleBlockData.map(r => r.sheetNumber));
+        console.log('All file names:', titleBlockData.map(r => r.fileName));
+    }
+}
+
 function extractSheetName(filename) {
     // Extract sheet name from filename
     const name = stripExtension(filename);
@@ -1106,10 +1229,63 @@ function processNamingRules(workbook) {
 }
 
 function processTitleBlocks(workbook) {
-    // Implement title blocks processing
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const data = XLSX.utils.sheet_to_json(sheet);
-    return data;
+    try {
+        console.log('=== PROCESSING TITLE BLOCKS ===');
+        console.log('Workbook sheet names:', workbook.SheetNames);
+        
+        // Use the first sheet by default
+        const sheetName = workbook.SheetNames[0];
+        console.log('Using sheet:', sheetName);
+        const worksheet = workbook.Sheets[sheetName];
+        
+        // Convert to JSON with headers in first row
+        const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        console.log('Raw Excel data (first 5 rows):', data.slice(0, 5));
+        console.log('Total rows:', data.length);
+        
+        if (data.length < 2) {
+            throw new Error('Title blocks file appears to be empty or has no data rows');
+        }
+        
+        // Extract headers from first row
+        const headers = data[0];
+        console.log('Headers from Excel:', headers);
+        
+        // Process data rows (skip header row)
+        const titleBlocks = data.slice(1).map((row, index) => {
+            const record = {
+                // Direct column mapping based on Excel structure
+                sheetNumber: row[0] || '',           // Column A: Sheet Number
+                sheetName: row[1] || '',             // Column B: Sheet Name  
+                fileName: row[2] || '',              // Column C: File Name
+                revisionCode: row[3] || '',          // Column D: Revision_code
+                revisionDate: row[4] || '',          // Column E: Revision_date
+                revisionDescription: row[5] || '',   // Column F: Revision_Description
+                suitabilityCode: row[6] || '',       // Column G: Suitability_code
+                stageDescription: row[7] || ''       // Column H: Stage_description
+            };
+            
+            if (index < 3) {
+                console.log(`Row ${index + 2} mapped to:`, record);
+            }
+            
+            return record;
+        }).filter(record => 
+            // Filter out completely empty rows
+            record.sheetNumber || record.fileName || record.sheetName
+        );
+        
+        console.log('✓ Processed', titleBlocks.length, 'title block records');
+        console.log('Sample records:', titleBlocks.slice(0, 3));
+        
+        showNotification(`Loaded ${titleBlocks.length} title block records`, 'success');
+        return titleBlocks;
+        
+    } catch (error) {
+        console.error('Error processing title blocks:', error);
+        showNotification('Error processing title blocks file', 'error');
+        return [];
+    }
 }
 
 // About and Settings functions
