@@ -814,7 +814,7 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
         
         // Get naming status from naming checker results
         const namingResult = namingResults.find(nr => nr.fileName === result.fileName);
-        const namingStatus = namingResult ? namingResult.compliance : 'Unknown';
+        const namingStatus = namingResult ? namingResult.status : 'Unknown';
         const namingStatusClass = namingStatus === 'Ok' ? 'success' : 
                                 namingStatus === 'Warning' ? 'warning' : 'error';
         
