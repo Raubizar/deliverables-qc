@@ -626,7 +626,7 @@ function checkQAQC(files) {
 function updateSummaryMetrics(drawingResults, namingResults, qaqcResults) {
     const totalFiles = fileResultsFromFolder.length;
     const missingFiles = drawingResults.filter(r => r.status === 'To Do').length;
-    const compliantFiles = namingResults.filter(r => r.status === 'OK').length;
+    const compliantFiles = namingResults.filter(r => r.status === 'Ok').length;
     const overallScore = Math.round(((compliantFiles / totalFiles) * 100));
     
     document.getElementById('totalFiles').textContent = totalFiles;
@@ -661,7 +661,7 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
         <tr>
             <td>${result.folderPath}</td>
             <td>${result.fileName}</td>
-            <td><span class="status-badge ${result.status === 'OK' ? 'success' : result.status === 'WARNING' ? 'warning' : 'error'}">${result.status}</span></td>
+            <td><span class="status-badge ${result.status === 'Ok' ? 'success' : result.status === 'OK' ? 'success' : result.status === 'WARNING' ? 'warning' : 'error'}">${result.status}</span></td>
             <td>${result.details}</td>
         </tr>
     `).join('');
@@ -788,7 +788,7 @@ function updateCharts(drawingResults, namingResults, qaqcResults) {
     }
     
     // Update naming chart
-    const namingOK = namingResults.filter(r => r.status === 'OK').length;
+    const namingOK = namingResults.filter(r => r.status === 'Ok').length;
     const namingPercent = Math.round((namingOK / namingResults.length) * 100) || 0;
     
     if (window.namingChart) {
