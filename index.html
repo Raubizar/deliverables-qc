@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drawing QC - Desktop Application</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Drawing QC</title>
+    <link rel="stylesheet" href="styles-clash.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="desktop-app">
@@ -17,335 +19,384 @@
             </div>
         </header>
 
-        <!-- Main 3-Column Layout -->
+        <!-- Main Layout -->
         <main class="main-layout">
             
-            <!-- Column 1: Input Files Section (25%) -->
-            <div class="column column-1">
-                <div class="column-header">
-                    <h2>📁 Input Files</h2>
+            <!-- Left Panel: Controls -->
+            <div class="column-1">
+                
+                <!-- Action Bar -->
+                <div class="action-bar">
+                    <div class="primary-actions">
+                        <button class="btn-primary" id="selectFiles">📁 Select Files</button>
+                        <button class="btn-secondary" id="downloadExport">📊 Export</button>
+                    </div>
+                    <select class="btn-secondary" id="fileTypeFilter" style="width: 100%;">
+                        <option value="all">All Files</option>
+                        <option value="pdf">PDF Only</option>
+                        <option value="dwg">DWG Only</option>
+                        <option value="other">Other Files</option>
+                    </select>
+                    <button class="btn-primary" id="runChecks" style="width: 100%; margin-top: 8px;">Run Checks</button>
                 </div>
-                <div class="column-content">
+
+                <!-- File Inputs -->
+                <div class="file-inputs">
+                    <h3>Input Files</h3>
                     
-                    <div class="file-input-row">
-                        <div class="file-input-item">
-                            <div class="file-input-box">
-                                <span class="file-icon">📁</span>
-                                <div class="file-input-content">
-                                    <input type="file" id="selectFolder" webkitdirectory directory multiple>
-                                    <label for="selectFolder" class="file-label">
-                                        <span class="file-action">Select Folder</span>
-                                        <span class="file-description">Root folder of files</span>
-                                    </label>
-                                </div>
-                                <button class="choose-btn" onclick="document.getElementById('selectFolder').click()">Choose Folder</button>
-                                <button class="choose-btn advanced-btn" onclick="selectFolderWithAPI()" title="Advanced folder selection with subdirectories">📁+</button>
-                            </div>
-                            <div class="file-status">
-                                <span class="checkmark">✓</span>
-                                <span class="status-text">Selected: Drawings</span>
-                            </div>
+                    <div class="file-chip" onclick="document.getElementById('folderInput').click()">
+                        <span class="file-icon">📁</span>
+                        <div class="file-info">
+                            <div class="file-name">Select Folder</div>
+                            <div class="file-status" id="folderStatus">No folder selected</div>
                         </div>
+                        <span class="file-action">Browse</span>
                     </div>
+                    <input type="file" id="folderInput" webkitdirectory multiple>
 
-                    <div class="file-input-row">
-                        <div class="file-input-item">
-                            <div class="file-input-box">
-                                <span class="file-icon">📋</span>
-                                <div class="file-input-content">
-                                    <input type="file" id="registerFile" accept=".xlsx,.xls">
-                                    <label for="registerFile" class="file-label">
-                                        <span class="file-action">Drawing Register.xlsx</span>
-                                        <span class="file-description">Drawing list/register</span>
-                                    </label>
-                                </div>
-                                <button class="choose-btn" onclick="document.getElementById('registerFile').click()">Choose File</button>
-                            </div>
+                    <div class="file-chip" onclick="document.getElementById('registerFile').click()">
+                        <span class="file-icon">📋</span>
+                        <div class="file-info">
+                            <div class="file-name">Drawing Register</div>
+                            <div class="file-status" id="registerStatus">No file selected</div>
                         </div>
+                        <span class="file-action">Browse</span>
                     </div>
+                    <input type="file" id="registerFile" accept=".xlsx,.xls">
 
-                    <div class="file-input-row">
-                        <div class="file-input-item">
-                            <div class="file-input-box">
-                                <span class="file-icon">📝</span>
-                                <div class="file-input-content">
-                                    <input type="file" id="namingRulesFile" accept=".xlsx,.xls">
-                                    <label for="namingRulesFile" class="file-label">
-                                        <span class="file-action">Naming Rules.xlsx</span>
-                                        <span class="file-description">Allowed file name parameters</span>
-                                    </label>
-                                </div>
-                                <button class="choose-btn" onclick="document.getElementById('namingRulesFile').click()">Choose File</button>
-                            </div>
-                            <div class="file-note">🟡</div>
+                    <div class="file-chip" onclick="document.getElementById('namingRulesFile').click()">
+                        <span class="file-icon">📝</span>
+                        <div class="file-info">
+                            <div class="file-name">Naming Rules</div>
+                            <div class="file-status" id="namingStatus">No file selected</div>
                         </div>
+                        <span class="file-action">Browse</span>
                     </div>
+                    <input type="file" id="namingRulesFile" accept=".xlsx,.xls">
 
-                    <div class="file-input-row">
-                        <div class="file-input-item">
-                            <div class="file-input-box">
-                                <span class="file-icon">🏷️</span>
-                                <div class="file-input-content">
-                                    <input type="file" id="titleBlocksFile" accept=".xlsx,.xls">
-                                    <label for="titleBlocksFile" class="file-label">
-                                        <span class="file-action">Title Blocks.xlsx</span>
-                                        <span class="file-description">Title block export</span>
-                                    </label>
-                                </div>
-                                <button class="choose-btn" onclick="document.getElementById('titleBlocksFile').click()">Choose File</button>
-                            </div>
+                    <div class="file-chip" onclick="document.getElementById('titleBlocksFile').click()">
+                        <span class="file-icon">🏷️</span>
+                        <div class="file-info">
+                            <div class="file-name">Title Blocks</div>
+                            <div class="file-status" id="titleBlocksStatus">No file selected</div>
                         </div>
+                        <span class="file-action">Browse</span>
                     </div>
+                    <input type="file" id="titleBlocksFile" accept=".xlsx,.xls">
+                </div>
 
-                    <div class="file-filter-section">
-                        <h3>File Type Filter</h3>
-                        <select class="filter-dropdown" id="fileTypeFilter">
-                            <option value="all">All Files</option>
-                            <option value="pdf">PDF Only</option>
-                            <option value="dwg">DWG Only</option>
-                            <option value="other">Other Files</option>
+                <!-- Excel Configuration -->
+                <div class="inline-controls" id="excelConfig" style="display: none;">
+                    <h3>📊 Excel Configuration</h3>
+                    <div class="inline-row">
+                        <label>Sheet:</label>
+                        <select id="registerSheetSelect">
+                            <option value="">Select sheet...</option>
                         </select>
                     </div>
-
-                    <button class="run-checks-btn" id="runChecks">Run Checks</button>
+                    <div class="inline-row">
+                        <label>Column:</label>
+                        <select id="registerColumnSelect">
+                            <option value="">Select column...</option>
+                        </select>
+                    </div>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 8px;" id="configPreview">
+                        Upload register file to configure
+                    </div>
                 </div>
+
+                <!-- Expected Values -->
+                <div class="file-inputs" id="expectedValues" style="display: none;">
+                    <h3>🎯 Expected Values</h3>
+                    
+                    <!-- Compact 3-column grid layout -->
+                    <div class="expected-values-grid">
+                        <div class="input-compact">
+                            <label>Rev Code</label>
+                            <input type="text" id="expectedRevCode" placeholder="P01">
+                        </div>
+                        <div class="input-compact">
+                            <label>Rev Date</label>
+                            <input type="text" id="expectedRevDate" placeholder="13.03.2025">
+                        </div>
+                        <div class="input-compact">
+                            <label>Suitability</label>
+                            <input type="text" id="expectedSuitability" placeholder="S3">
+                        </div>
+                        <div class="input-compact span-2">
+                            <label>Stage Description</label>
+                            <input type="text" id="expectedStage" placeholder="Issued for Review">
+                        </div>
+                        <div class="input-compact">
+                            <label>Separator</label>
+                            <input type="text" id="separator" value=" - " placeholder="-">
+                        </div>
+                        <div class="input-compact span-3">
+                            <label>Revision Description</label>
+                            <input type="text" id="expectedRevDesc" placeholder="Description">
+                        </div>
+                        <div class="checkbox-compact span-3">
+                            <label>
+                                <input type="checkbox" id="checkSheetOnly"> 
+                                Check only Sheet Number
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
-            <!-- Column 2: User Configuration (25%) -->
-            <div class="column column-2">
-                <!-- Top Half: Expected Values -->
-                <div class="column-section top-section">
-                    <div class="section-header">
-                        <h3>🎯 Expected Values</h3>
-                        <p>For QA-QC Validation</p>
+            <!-- Right Panel: Results -->
+            <div class="column-3">
+                
+                <!-- Summary Section -->
+                <div class="summary-section">
+                    <h2>Summary</h2>
+                    
+                    <div class="summary-grid">
+                        <div class="metric-card">
+                            <div class="metric-value info" id="totalFiles">0</div>
+                            <div class="metric-label">Total Files</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value warning" id="missingFiles">0</div>
+                            <div class="metric-label">Missing</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value success" id="compliantFiles">0</div>
+                            <div class="metric-label">Compliant</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="overallScore">0%</div>
+                            <div class="metric-label">Overall</div>
+                        </div>
                     </div>
-                    <div class="section-content">
-                        <div class="expected-values-grid">
-                            <div class="input-group">
-                                <label for="revisionCode">Expected Revision Code:</label>
-                                <input type="text" id="revisionCode" placeholder="e.g., P01">
+
+                    <div class="charts-grid">
+                        <div class="chart-card">
+                            <h4>Compliance Distribution</h4>
+                            <canvas id="complianceChart"></canvas>
+                            <div class="progress-text">Drawing List vs Files</div>
+                        </div>
+                        <div class="chart-card">
+                            <h4>Naming</h4>
+                            <div class="progress-circle">
+                                <canvas id="namingChart"></canvas>
                             </div>
-                            
-                            <div class="input-group">
-                                <label for="revisionDate">Expected Revision Date:</label>
-                                <input type="text" id="revisionDate" placeholder="e.g., 13.03.2025 or 13/03/25">
+                            <div class="progress-text" id="namingPercent">0% OK</div>
+                        </div>
+                        <div class="chart-card">
+                            <h4>Title Blocks</h4>
+                            <div class="progress-circle">
+                                <canvas id="titleChart"></canvas>
                             </div>
-                            
-                            <div class="input-group">
-                                <label for="suitabilityCode">Expected Suitability Code:</label>
-                                <input type="text" id="suitabilityCode" placeholder="e.g., S3">
-                            </div>
-                            
-                            <div class="input-group">
-                                <label for="stageDescription">Expected Stage Description:</label>
-                                <input type="text" id="stageDescription" placeholder="e.g., Issued for Review">
-                            </div>
-                            
-                            <div class="input-group">
-                                <label for="revisionDescription">Expected Revision Description:</label>
-                                <input type="text" id="revisionDescription" placeholder="e.g., Some description">
-                            </div>
-                            
-                            <div class="input-group">
-                                <label for="separator">Separator (Sheet Number - Sheet Name):</label>
-                                <input type="text" id="separator" placeholder="e.g., ' - '" value=" - ">
-                            </div>
-                            
-                            <div class="input-group checkbox-group">
-                                <label for="checkOnlySheetNumber">
-                                    <input type="checkbox" id="checkOnlySheetNumber">
-                                    Check only Sheet Number
-                                </label>
-                            </div>
+                            <div class="progress-text" id="titlePercent">0% OK</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Bottom Half: Excel Configuration -->
-                <div class="column-section bottom-section">
-                    <div class="section-header">
-                        <h3>📊 Excel Configuration</h3>
-                        <p>Sheet and column selection for drawing register</p>
-                    </div>
-                    <div class="section-content">
-                        <!-- Sheet and Column Selection Options -->
-                        <div id="registerOptions" class="excel-options" style="display: none;">
-                            <div class="selection-row">
-                                <div class="selection-group">
-                                    <label for="registerSheetSelect">Select Sheet:</label>
-                                    <select id="registerSheetSelect" class="sheet-select">
-                                        <option value="">Loading sheets...</option>
-                                    </select>
-                                </div>
-                                <div class="selection-group">
-                                    <label for="registerColumnSelect">Select Column for Drawing Names:</label>
-                                    <select id="registerColumnSelect" class="column-select">
-                                        <option value="">Select sheet first</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="selection-preview">
-                                <strong>Preview:</strong>
-                                <div id="registerPreview" class="preview-content">Select a column to see preview...</div>
-                            </div>
-                        </div>
-                        
-                        <div class="excel-placeholder" id="excelPlaceholder">
-                            <div class="placeholder-content">
-                                <span class="placeholder-icon">📋</span>
-                                <p>Upload a drawing register file to configure sheet and column selection</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Column 3: Results & Summary (50%) -->
-            <div class="column column-3">
-                <!-- Top Half: Summary Dashboard -->
-                <div class="column-section top-section">
-                    <div class="section-header">
-                        <h3>📈 Summary Dashboard</h3>
-                        <p>Overview and metrics</p>
-                    </div>
-                    <div class="section-content">
-                        <div class="summary-dashboard-layout">
-                            <div class="summary-metrics">
-                                <div class="summary-item">
-                                    <div class="summary-label">Drawings scanned</div>
-                                    <div class="summary-value" id="drawingsScanned">95</div>
-                                </div>
-                                
-                                <div class="summary-item">
-                                    <div class="summary-label">Drawings in Register</div>
-                                    <div class="summary-value missing" id="drawingsInRegister">33 missing</div>
-                                </div>
-                                
-                                <div class="summary-item">
-                                    <div class="summary-label">Naming compliance</div>
-                                    <div class="summary-value-with-bar">
-                                        <span class="summary-value" id="namingCompliance">0% OK</span>
-                                        <div class="progress-bar">
-                                            <div class="progress-fill red" style="width: 0%"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="summary-item">
-                                    <div class="summary-label">Title block compliance</div>
-                                    <div class="summary-value-with-bar">
-                                        <span class="summary-value" id="titleBlockCompliance">0% OK</span>
-                                        <div class="progress-bar">
-                                            <div class="progress-fill red" style="width: 0%"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="summary-item">
-                                    <div class="summary-label">Overall compliance</div>
-                                    <div class="summary-value-with-bar">
-                                        <span class="summary-value" id="overallCompliance">0% OK</span>
-                                        <div class="progress-bar">
-                                            <div class="progress-fill red" style="width: 0%"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="summary-chart">
-                                <div class="chart-container">
-                                    <canvas id="complianceChart" width="150" height="150"></canvas>
-                                    <div class="chart-legend">
-                                        <div class="legend-item">
-                                            <span class="legend-color ok"></span>
-                                            <span>Compliant</span>
-                                        </div>
-                                        <div class="legend-item">
-                                            <span class="legend-color error"></span>
-                                            <span>Non-compliant</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Bottom Half: Detailed Results -->
-                <div class="column-section bottom-section">
-                    <div class="section-header">
-                        <h3>📋 Detailed Results</h3>
+                <!-- Results Section -->
+                <div class="results-section">
+                    <div class="results-header">
+                        <h2>Detailed Results</h2>
                         <div class="results-controls">
-                            <input type="text" placeholder="Search results..." class="search-input">
-                            <button class="download-btn">📥 Download XLSX Report</button>
+                            <input type="text" placeholder="Search results..." id="searchInput" 
+                                   style="padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 12px;">
+                            <button class="btn-secondary" id="downloadXLSX">📊 Export XLSX</button>
                         </div>
                     </div>
-                    <div class="section-content">
-                        <div class="results-tabs">
-                            <button class="tab active" data-tab="drawing-list">Check Drawing List</button>
-                            <button class="tab" data-tab="naming">Naming Checker</button>
-                            <button class="tab" data-tab="validation">Deliverables QA-QC</button>
+
+                    <div class="tab-nav">
+                        <button class="tab-btn active" data-tab="drawing-list">Drawing List</button>
+                        <button class="tab-btn" data-tab="naming-checker">Naming Checker</button>
+                        <button class="tab-btn" data-tab="qa-qc">QA-QC Validation</button>
+                    </div>
+
+                    <div class="table-container">
+                        <!-- Drawing List Tab -->
+                        <div id="drawing-list-content" class="tab-content active">
+                            <table class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Excel Drawing Name</th>
+                                        <th>Matched File Name</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="drawingListResults">
+                                    <tr>
+                                        <td>A-001_Floor_Plan_P01</td>
+                                        <td>A-001_Floor_Plan_P01.pdf</td>
+                                        <td><span class="status-badge success">DONE</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>A-002_Elevation_P01</td>
+                                        <td>A-002_Elevation_P01.pdf</td>
+                                        <td><span class="status-badge success">DONE</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>M-101_HVAC_Plan_P01</td>
+                                        <td>N/A</td>
+                                        <td><span class="status-badge warning">TO DO</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>E-201_Power_Plan_P01</td>
+                                        <td>E-201_Power_Plan_P01.dwg</td>
+                                        <td><span class="status-badge info">DONE</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>S-301_Foundation_P01</td>
+                                        <td>S-301_Foundation_P01.pdf</td>
+                                        <td><span class="status-badge success">DONE</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
 
-                        <div class="table-container">
-                            <!-- Check Drawing List Tab -->
-                            <div class="tab-content active" id="drawing-list">
-                                <table class="results-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Excel Drawing Name</th>
-                                            <th>Matched File Name</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="drawingListResults">
-                                        <!-- Drawing list results will be populated here -->
-                                    </tbody>
-                                </table>
-                            </div>
+                        <!-- Naming Checker Tab -->
+                        <div id="naming-checker-content" class="tab-content">
+                            <table class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Folder Path</th>
+                                        <th>File Name</th>
+                                        <th>Compliance Status</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="namingResults">
+                                    <tr>
+                                        <td>Architecture/Floor Plans/</td>
+                                        <td>A-001_Floor_Plan_P01.pdf</td>
+                                        <td><span class="status-badge success">OK</span></td>
+                                        <td>Follows naming convention</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Architecture/Elevations/</td>
+                                        <td>A-002_Elevation_P01.pdf</td>
+                                        <td><span class="status-badge success">OK</span></td>
+                                        <td>Follows naming convention</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mechanical/HVAC/</td>
+                                        <td>M_101_HVAC_Plan.pdf</td>
+                                        <td><span class="status-badge error">NON-COMPLIANT</span></td>
+                                        <td>Missing revision code</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Electrical/Power/</td>
+                                        <td>E-201_Power_Plan_Rev01.pdf</td>
+                                        <td><span class="status-badge warning">WARNING</span></td>
+                                        <td>Non-standard revision format</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Structural/Foundation/</td>
+                                        <td>S-301_Foundation_P01.pdf</td>
+                                        <td><span class="status-badge success">OK</span></td>
+                                        <td>Follows naming convention</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
 
-                            <!-- Naming Checker Tab -->
-                            <div class="tab-content" id="naming">
-                                <table class="results-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Folder Path</th>
-                                            <th>File Name</th>
-                                            <th>Compliance Status</th>
-                                            <th>Details</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="namingResults">
-                                        <!-- Naming checker results will be populated here -->
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <!-- Deliverables QA-QC Tab -->
-                            <div class="tab-content" id="validation">
-                                <table class="results-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Sheet Number</th>
-                                            <th>Sheet Name</th>
-                                            <th>File Name</th>
-                                            <th>Revision Code</th>
-                                            <th>Revision Date</th>
-                                            <th>Revision Description</th>
-                                            <th>Suitability Code</th>
-                                            <th>Stage Description</th>
-                                            <th>Naming Convention Status</th>
-                                            <th>File Delivery Status</th>
-                                            <th>Comments</th>
-                                            <th>Result</th>
-                                            <th>Mismatched Items</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="validationResults">
-                                        <!-- QA-QC validation results will be populated here -->
-                                    </tbody>
-                                </table>
-                            </div>
+                        <!-- QA-QC Tab -->
+                        <div id="qa-qc-content" class="tab-content">
+                            <table class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Sheet Number</th>
+                                        <th>Sheet Name</th>
+                                        <th>File Name</th>
+                                        <th>Rev Code</th>
+                                        <th>Rev Date</th>
+                                        <th>Rev Description</th>
+                                        <th>Suitability</th>
+                                        <th>Stage</th>
+                                        <th>Naming Status</th>
+                                        <th>File Delivery</th>
+                                        <th>Comments</th>
+                                        <th>Result</th>
+                                        <th>Issues</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="qaqcResults">
+                                    <tr>
+                                        <td>A-001</td>
+                                        <td>Floor Plan</td>
+                                        <td>A-001_Floor_Plan_P01.pdf</td>
+                                        <td>P01</td>
+                                        <td>13.03.2025</td>
+                                        <td>Initial Issue</td>
+                                        <td>S3</td>
+                                        <td>Issued for Review</td>
+                                        <td><span class="status-badge success">OK</span></td>
+                                        <td><span class="status-badge success">Delivered</span></td>
+                                        <td></td>
+                                        <td><span class="status-badge success">PASS</span></td>
+                                        <td>None</td>
+                                    </tr>
+                                    <tr>
+                                        <td>A-002</td>
+                                        <td>Elevation</td>
+                                        <td>A-002_Elevation_P01.pdf</td>
+                                        <td>P01</td>
+                                        <td>13.03.2025</td>
+                                        <td>Initial Issue</td>
+                                        <td>S3</td>
+                                        <td>Issued for Review</td>
+                                        <td><span class="status-badge success">OK</span></td>
+                                        <td><span class="status-badge success">Delivered</span></td>
+                                        <td></td>
+                                        <td><span class="status-badge success">PASS</span></td>
+                                        <td>None</td>
+                                    </tr>
+                                    <tr>
+                                        <td>M-101</td>
+                                        <td>HVAC Plan</td>
+                                        <td>M-101_HVAC_Plan_P01.pdf</td>
+                                        <td>P02</td>
+                                        <td>20.03.2025</td>
+                                        <td>Second Issue</td>
+                                        <td>S2</td>
+                                        <td>Issued for Construction</td>
+                                        <td><span class="status-badge warning">Warning</span></td>
+                                        <td><span class="status-badge success">Delivered</span></td>
+                                        <td>Check revision code</td>
+                                        <td><span class="status-badge error">FAIL</span></td>
+                                        <td>Rev Code: expected "P01", got "P02"</td>
+                                    </tr>
+                                    <tr>
+                                        <td>E-201</td>
+                                        <td>Power Plan</td>
+                                        <td>E-201_Power_Plan_P01.pdf</td>
+                                        <td>P01</td>
+                                        <td>13.03.2025</td>
+                                        <td>Initial Issue</td>
+                                        <td></td>
+                                        <td>Issued for Review</td>
+                                        <td><span class="status-badge success">OK</span></td>
+                                        <td><span class="status-badge success">Delivered</span></td>
+                                        <td></td>
+                                        <td><span class="status-badge warning">WARNING</span></td>
+                                        <td>Missing suitability code</td>
+                                    </tr>
+                                    <tr>
+                                        <td>S-301</td>
+                                        <td>Foundation</td>
+                                        <td>S-301_Foundation_P01.pdf</td>
+                                        <td>P01</td>
+                                        <td>13.03.2025</td>
+                                        <td>Initial Issue</td>
+                                        <td>S3</td>
+                                        <td>Issued for Review</td>
+                                        <td><span class="status-badge success">OK</span></td>
+                                        <td><span class="status-badge success">Delivered</span></td>
+                                        <td></td>
+                                        <td><span class="status-badge success">PASS</span></td>
+                                        <td>None</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -353,7 +404,6 @@
         </main>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="script.js"></script>
+    <script src="script-clash.js"></script>
 </body>
 </html>
