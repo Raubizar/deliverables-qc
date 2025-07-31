@@ -682,8 +682,11 @@ function checkQAQC(files) {
                 
                 // Only validate if expected values are provided
                 if (expectedValues.revisionCode && 
-                    normalizeText(actualValues.revisionCode) !== normalizeText(expectedValues.revisionCode)) {
-                    issues.push(`Rev Code: expected "${expectedValues.revisionCode}", got "${actualValues.revisionCode}"`);
+                    actualValues.revisionCode !== 'N/A') {
+                    const revisionValidation = compareRevisionCodes(expectedValues.revisionCode, actualValues.revisionCode);
+                    if (!revisionValidation.valid) {
+                        issues.push(`Rev Code: ${revisionValidation.reason} (expected >= "${expectedValues.revisionCode}", got "${actualValues.revisionCode}")`);
+                    }
                 }
                 
                 if (expectedValues.revisionDate && 
@@ -803,21 +806,11 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
     
     qaqcTable.innerHTML = qaqcResults.map(result => {
         console.log('Processing QA-QC result for file:', result.fileName);
+        console.log('Result data:', result);
         
-        // Extract title block data for display
-        const titleRecord = titleBlockData && titleBlockData.length > 0 ? titleBlockData.find(record => 
-            normalizeText(record.fileName || '') === normalizeText(result.fileName) ||
-            normalizeText(record.sheetNumber || '') === normalizeText(result.sheetNumber)
-        ) : null;
-        
-        console.log('Found title record for', result.fileName, ':', titleRecord);
-        
-        const sheetName = titleRecord?.sheetName || extractSheetName(result.fileName) || 'N/A';
-        const revCode = titleRecord?.revisionCode || 'N/A';
-        const revDate = titleRecord?.revisionDate || 'N/A';
-        const revDesc = titleRecord?.revisionDescription || 'N/A';
-        const suitability = titleRecord?.suitabilityCode || 'N/A';
-        const stage = titleRecord?.stageDescription || 'N/A';
+        // Check if revision code has validation issues
+        const hasRevisionError = result.issues && result.issues.includes('Rev Code:');
+        const revCodeClass = hasRevisionError ? 'revision-error' : '';
         
         // Check naming compliance for this file
         const namingStatus = checkFileNamingCompliance(result.fileName);
@@ -826,13 +819,13 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
         return `
             <tr>
                 <td>${result.sheetNumber}</td>
-                <td>${sheetName}</td>
+                <td>${result.sheetName}</td>
                 <td>${result.fileName}</td>
-                <td>${revCode}</td>
-                <td>${revDate}</td>
-                <td>${revDesc}</td>
-                <td>${suitability}</td>
-                <td>${stage}</td>
+                <td class="${revCodeClass}">${result.revCode}</td>
+                <td>${result.revDate}</td>
+                <td>${result.revDescription}</td>
+                <td>${result.suitability}</td>
+                <td>${result.stage}</td>
                 <td><span class="status-badge ${namingStatus === 'OK' ? 'success' : namingStatus === 'Warning' ? 'warning' : 'error'}">${namingStatus}</span></td>
                 <td><span class="status-badge success">${deliveryStatus}</span></td>
                 <td></td>
@@ -1063,6 +1056,123 @@ function debugTitleBlocks() {
         
         console.log('All sheet numbers:', titleBlockData.map(r => r.sheetNumber));
         console.log('All file names:', titleBlockData.map(r => r.fileName));
+    }
+}
+
+// New revision validation functions
+function parseRevisionCode(revCode) {
+    if (!revCode) return null;
+    
+    const trimmed = revCode.toString().trim();
+    
+    // Pattern 1: Letter + Numbers (e.g., P01, A123)
+    const letterNumberMatch = trimmed.match(/^([A-Z])(\d+)$/i);
+    if (letterNumberMatch) {
+        return {
+            type: 'letter-number',
+            letter: letterNumberMatch[1].toUpperCase(),
+            number: parseInt(letterNumberMatch[2], 10),
+            original: trimmed
+        };
+    }
+    
+    // Pattern 2: Just Numbers (e.g., 01, 123)
+    const numberMatch = trimmed.match(/^(\d+)$/);
+    if (numberMatch) {
+        return {
+            type: 'number-only',
+            number: parseInt(numberMatch[1], 10),
+            original: trimmed
+        };
+    }
+    
+    // Pattern 3: Single Letter (e.g., A, B)
+    const letterMatch = trimmed.match(/^([A-Z])$/i);
+    if (letterMatch) {
+        return {
+            type: 'letter-only',
+            letter: letterMatch[1].toUpperCase(),
+            original: trimmed
+        };
+    }
+    
+    // If no pattern matches, return as-is for string comparison
+    return {
+        type: 'unknown',
+        original: trimmed
+    };
+}
+
+function compareRevisionCodes(expected, actual) {
+    const expectedParsed = parseRevisionCode(expected);
+    const actualParsed = parseRevisionCode(actual);
+    
+    console.log('Revision comparison:', {
+        expected: expectedParsed,
+        actual: actualParsed
+    });
+    
+    // If either couldn't be parsed, fail validation
+    if (!expectedParsed || !actualParsed) {
+        return {
+            valid: false,
+            reason: 'Could not parse revision codes'
+        };
+    }
+    
+    // Must be same format type
+    if (expectedParsed.type !== actualParsed.type) {
+        return {
+            valid: false,
+            reason: `Format mismatch: expected ${expectedParsed.type}, got ${actualParsed.type}`
+        };
+    }
+    
+    // Compare based on type
+    switch (expectedParsed.type) {
+        case 'letter-number':
+            // Letter must match exactly, number must be >= expected
+            if (expectedParsed.letter !== actualParsed.letter) {
+                return {
+                    valid: false,
+                    reason: `Letter mismatch: expected "${expectedParsed.letter}", got "${actualParsed.letter}"`
+                };
+            }
+            if (actualParsed.number < expectedParsed.number) {
+                return {
+                    valid: false,
+                    reason: `Number too low: expected >= ${expectedParsed.number}, got ${actualParsed.number}`
+                };
+            }
+            return { valid: true };
+            
+        case 'number-only':
+            // Number must be >= expected
+            if (actualParsed.number < expectedParsed.number) {
+                return {
+                    valid: false,
+                    reason: `Number too low: expected >= ${expectedParsed.number}, got ${actualParsed.number}`
+                };
+            }
+            return { valid: true };
+            
+        case 'letter-only':
+            // Letter must be >= expected (A < B < C, etc.)
+            if (actualParsed.letter < expectedParsed.letter) {
+                return {
+                    valid: false,
+                    reason: `Letter too low: expected >= "${expectedParsed.letter}", got "${actualParsed.letter}"`
+                };
+            }
+            return { valid: true };
+            
+        default:
+            // For unknown formats, do exact string comparison
+            return {
+                valid: expectedParsed.original === actualParsed.original,
+                reason: expectedParsed.original !== actualParsed.original ? 
+                    `Exact match required for unknown format` : undefined
+            };
     }
 }
 
