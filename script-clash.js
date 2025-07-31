@@ -833,7 +833,7 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
                 <td><span class="status-badge ${namingStatusClass}">${namingStatus}</span></td>
                 <td><span class="status-badge success">${deliveryStatus}</span></td>
                 <td></td>
-                <td><span class="status-badge ${result.result === 'PASS' ? 'success' : result.result === 'WARNING' ? 'warning' : 'error'}">${result.result}</span></td>
+                <td><span class="status-badge success">${result.result === 'PASS' ? 'PASS' : ''}</span></td>
                 <td>${result.issues}</td>
             </tr>
         `;
