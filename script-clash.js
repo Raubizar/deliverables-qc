@@ -2153,6 +2153,33 @@ function autoFillExpectedValues(titleBlockData) {
         Object.entries(fieldMappings).forEach(([fieldId, titleBlockProperty]) => {
             console.log(`\n🔍 Analyzing field: ${fieldId} (${titleBlockProperty})`);
             
+            // Special handling for revision code - always default to P01
+            if (fieldId === 'expectedRevCode') {
+                console.log('🎯 Auto-setting revision code to P01 (default)');
+                
+                const formField = document.getElementById(fieldId);
+                if (formField) {
+                    const previousValue = formField.value;
+                    formField.value = 'P01';
+                    
+                    autoFilledValues[fieldId] = {
+                        value: 'P01',
+                        frequency: 'N/A',
+                        totalValues: titleBlockData.length,
+                        previousValue: previousValue,
+                        confidence: 100,
+                        isDefault: true
+                    };
+                    
+                    totalFieldsAutoFilled++;
+                    console.log(`📝 Auto-filled ${fieldId}: "P01" (default value)`);
+                } else {
+                    console.warn(`⚠️ Form field ${fieldId} not found in DOM`);
+                }
+                return; // Skip the normal analysis for revision code
+            }
+            
+            // Normal analysis for all other fields
             // Extract all non-empty values for this property
             const values = titleBlockData
                 .map(record => record[titleBlockProperty])
@@ -2182,50 +2209,61 @@ function autoFillExpectedValues(titleBlockData) {
             
             console.log(`🏆 Most common values (${maxCount} occurrences):`, mostCommonValues);
             
-            // Select the best value: highest first, then first found
+            // Select the best value: lowest for revision codes, then first found for others
             let selectedValue;
             if (mostCommonValues.length === 1) {
                 selectedValue = mostCommonValues[0];
             } else {
-                // Multiple values with same frequency - pick highest, then first
+                // Multiple values with same frequency - pick lowest for rev codes, first for others
                 if (fieldId === 'expectedRevCode') {
-                    // For revision codes, sort to get highest revision
+                    // For revision codes, sort to get LOWEST revision
+                    console.log(`🔍 Comparing revision codes for lowest:`, mostCommonValues);
+                    
                     selectedValue = mostCommonValues.sort((a, b) => {
-                        // Try to parse as revision codes and compare
-                        const parseRevision = (rev) => {
+                        console.log(`  Comparing "${a}" vs "${b}"`);
+                        
+                        // Simple comparison approach - convert to comparable format
+                        const normalizeRevision = (rev) => {
+                            // Handle letter+number format (P01, A02, etc.)
                             const letterNumberMatch = rev.match(/^([A-Z])(\d+)$/i);
                             if (letterNumberMatch) {
-                                return { letter: letterNumberMatch[1].toUpperCase(), number: parseInt(letterNumberMatch[2]) };
+                                const letter = letterNumberMatch[1].toUpperCase();
+                                const number = parseInt(letterNumberMatch[2]);
+                                // Create sortable string: letter + zero-padded number
+                                return letter + number.toString().padStart(3, '0');
                             }
+                            
+                            // Handle number-only format (01, 02, etc.)
                             const numberMatch = rev.match(/^(\d+)$/);
                             if (numberMatch) {
-                                return { number: parseInt(numberMatch[1]) };
+                                const number = parseInt(numberMatch[1]);
+                                return number.toString().padStart(3, '0');
                             }
-                            return { text: rev };
+                            
+                            // For anything else, return as-is
+                            return rev.toUpperCase();
                         };
                         
-                        const parsedA = parseRevision(a);
-                        const parsedB = parseRevision(b);
+                        const normalizedA = normalizeRevision(a);
+                        const normalizedB = normalizeRevision(b);
                         
-                        // Compare based on parsed structure
-                        if (parsedA.letter && parsedB.letter) {
-                            if (parsedA.letter === parsedB.letter) {
-                                return parsedB.number - parsedA.number; // Higher number first
-                            }
-                            return parsedB.letter.localeCompare(parsedA.letter); // Higher letter first
-                        } else if (parsedA.number !== undefined && parsedB.number !== undefined) {
-                            return parsedB.number - parsedA.number; // Higher number first
-                        } else {
-                            return b.localeCompare(a); // Alphabetical descending
-                        }
+                        console.log(`    "${a}" -> "${normalizedA}", "${b}" -> "${normalizedB}"`);
+                        
+                        // Simple string comparison for lowest first
+                        const result = normalizedA.localeCompare(normalizedB);
+                        console.log(`    Result: ${result} (${result < 0 ? 'A wins' : result > 0 ? 'B wins' : 'tie'})`);
+                        
+                        return result;
                     })[0];
+                    
+                    console.log(`🏆 Selected lowest revision: "${selectedValue}"`);
                 } else {
                     // For other fields, just pick the first one
                     selectedValue = mostCommonValues[0];
                 }
             }
             
-            console.log(`✅ Selected value for ${fieldId}: "${selectedValue}"`);
+            console.log(`✅ Selected value for ${fieldId}: "${selectedValue}" ${fieldId === 'expectedRevCode' ? '(lowest revision)' : ''}`);
             
             // Auto-fill the form field
             const formField = document.getElementById(fieldId);
@@ -2258,7 +2296,8 @@ function autoFillExpectedValues(titleBlockData) {
             // Show detailed results in console
             console.log('\n🤖 AUTO-FILL SUMMARY:');
             Object.entries(autoFilledValues).forEach(([fieldId, data]) => {
-                console.log(`${fieldId}: "${data.value}" (${data.confidence}% confidence, ${data.frequency}/${data.totalValues} records)`);
+                const statusText = data.isDefault ? '(default)' : `(${data.confidence}% confidence, ${data.frequency}/${data.totalValues} records)`;
+                console.log(`${fieldId}: "${data.value}" ${statusText}`);
             });
             
             // Show user-friendly summary
@@ -2266,12 +2305,13 @@ function autoFillExpectedValues(titleBlockData) {
                 const detailsMessage = `📊 Auto-fill details:\n` +
                     Object.entries(autoFilledValues).map(([fieldId, data]) => {
                         const fieldName = fieldId.replace('expected', '').replace('Rev', 'Revision ').replace('Desc', 'Description');
-                        return `• ${fieldName}: "${data.value}" (${data.confidence}% confidence)`;
+                        const statusText = data.isDefault ? '(default)' : `(${data.confidence}% confidence)`;
+                        return `• ${fieldName}: "${data.value}" ${statusText}`;
                     }).join('\n') +
                     `\n\n💡 You can manually override these values if needed.`;
                 
                 console.log(detailsMessage);
-                showNotification('📊 Expected Values auto-filled successfully. Check console for details.', 'info');
+                showNotification('📊 Expected Values auto-filled. Revision Code set to P01 (default).', 'info');
             }, 2000);
         } else {
             showNotification('⚠️ No Expected Values could be auto-filled - insufficient title block data', 'warning');
