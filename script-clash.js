@@ -365,6 +365,12 @@ async function processExcelFile(file, type) {
                 // Show summary notification
                 const summary = `📋 Loaded ${titleBlockData.length} title block records`;
                 showNotification(summary, 'success');
+                
+                // AUTO-FILL EXPECTED VALUES immediately after processing
+                setTimeout(() => {
+                    autoFillExpectedValues(titleBlockData);
+                }, 500);
+                
             } else {
                 throw new Error('No valid title block data found');
             }
@@ -2122,6 +2128,162 @@ function showNotification(message, type) {
                 header.style.color = originalColor;
             }, 1000);
         }
+    }
+}
+
+// NEW: Auto-fill Expected Values based on most common values from Title Block data
+function autoFillExpectedValues(titleBlockData) {
+    console.log('🤖 === AUTO-FILLING EXPECTED VALUES ===');
+    console.log('🤖 Analyzing', titleBlockData.length, 'title block records');
+    
+    try {
+        // Define field mappings: Expected Value field ID -> Title Block property
+        const fieldMappings = {
+            'expectedRevCode': 'revisionCode',
+            'expectedRevDate': 'revisionDate', 
+            'expectedSuitability': 'suitabilityCode',
+            'expectedStage': 'stageDescription',
+            'expectedRevDesc': 'revisionDescription'
+        };
+        
+        const autoFilledValues = {};
+        let totalFieldsAutoFilled = 0;
+        
+        // Process each field
+        Object.entries(fieldMappings).forEach(([fieldId, titleBlockProperty]) => {
+            console.log(`\n🔍 Analyzing field: ${fieldId} (${titleBlockProperty})`);
+            
+            // Extract all non-empty values for this property
+            const values = titleBlockData
+                .map(record => record[titleBlockProperty])
+                .filter(value => value && typeof value === 'string' && value.trim() !== '')
+                .map(value => value.trim());
+            
+            console.log(`📊 Found ${values.length} non-empty values:`, values.slice(0, 5));
+            
+            if (values.length === 0) {
+                console.log(`⚠️ No valid values found for ${fieldId}`);
+                return;
+            }
+            
+            // Count frequency of each value
+            const frequency = {};
+            values.forEach(value => {
+                frequency[value] = (frequency[value] || 0) + 1;
+            });
+            
+            console.log(`📈 Frequency analysis:`, frequency);
+            
+            // Find most common value(s)
+            const maxCount = Math.max(...Object.values(frequency));
+            const mostCommonValues = Object.entries(frequency)
+                .filter(([_, count]) => count === maxCount)
+                .map(([value, _]) => value);
+            
+            console.log(`🏆 Most common values (${maxCount} occurrences):`, mostCommonValues);
+            
+            // Select the best value: highest first, then first found
+            let selectedValue;
+            if (mostCommonValues.length === 1) {
+                selectedValue = mostCommonValues[0];
+            } else {
+                // Multiple values with same frequency - pick highest, then first
+                if (fieldId === 'expectedRevCode') {
+                    // For revision codes, sort to get highest revision
+                    selectedValue = mostCommonValues.sort((a, b) => {
+                        // Try to parse as revision codes and compare
+                        const parseRevision = (rev) => {
+                            const letterNumberMatch = rev.match(/^([A-Z])(\d+)$/i);
+                            if (letterNumberMatch) {
+                                return { letter: letterNumberMatch[1].toUpperCase(), number: parseInt(letterNumberMatch[2]) };
+                            }
+                            const numberMatch = rev.match(/^(\d+)$/);
+                            if (numberMatch) {
+                                return { number: parseInt(numberMatch[1]) };
+                            }
+                            return { text: rev };
+                        };
+                        
+                        const parsedA = parseRevision(a);
+                        const parsedB = parseRevision(b);
+                        
+                        // Compare based on parsed structure
+                        if (parsedA.letter && parsedB.letter) {
+                            if (parsedA.letter === parsedB.letter) {
+                                return parsedB.number - parsedA.number; // Higher number first
+                            }
+                            return parsedB.letter.localeCompare(parsedA.letter); // Higher letter first
+                        } else if (parsedA.number !== undefined && parsedB.number !== undefined) {
+                            return parsedB.number - parsedA.number; // Higher number first
+                        } else {
+                            return b.localeCompare(a); // Alphabetical descending
+                        }
+                    })[0];
+                } else {
+                    // For other fields, just pick the first one
+                    selectedValue = mostCommonValues[0];
+                }
+            }
+            
+            console.log(`✅ Selected value for ${fieldId}: "${selectedValue}"`);
+            
+            // Auto-fill the form field
+            const formField = document.getElementById(fieldId);
+            if (formField) {
+                const previousValue = formField.value;
+                formField.value = selectedValue;
+                
+                // Track what was auto-filled
+                autoFilledValues[fieldId] = {
+                    value: selectedValue,
+                    frequency: maxCount,
+                    totalValues: values.length,
+                    previousValue: previousValue,
+                    confidence: Math.round((maxCount / values.length) * 100)
+                };
+                
+                totalFieldsAutoFilled++;
+                
+                console.log(`📝 Auto-filled ${fieldId}: "${selectedValue}" (${maxCount}/${values.length} = ${autoFilledValues[fieldId].confidence}% confidence)`);
+            } else {
+                console.warn(`⚠️ Form field ${fieldId} not found in DOM`);
+            }
+        });
+        
+        // Show comprehensive notification
+        if (totalFieldsAutoFilled > 0) {
+            const notification = `🤖 Auto-filled ${totalFieldsAutoFilled} Expected Values based on most common title block values`;
+            showNotification(notification, 'success');
+            
+            // Show detailed results in console
+            console.log('\n🤖 AUTO-FILL SUMMARY:');
+            Object.entries(autoFilledValues).forEach(([fieldId, data]) => {
+                console.log(`${fieldId}: "${data.value}" (${data.confidence}% confidence, ${data.frequency}/${data.totalValues} records)`);
+            });
+            
+            // Show user-friendly summary
+            setTimeout(() => {
+                const detailsMessage = `📊 Auto-fill details:\n` +
+                    Object.entries(autoFilledValues).map(([fieldId, data]) => {
+                        const fieldName = fieldId.replace('expected', '').replace('Rev', 'Revision ').replace('Desc', 'Description');
+                        return `• ${fieldName}: "${data.value}" (${data.confidence}% confidence)`;
+                    }).join('\n') +
+                    `\n\n💡 You can manually override these values if needed.`;
+                
+                console.log(detailsMessage);
+                showNotification('📊 Expected Values auto-filled successfully. Check console for details.', 'info');
+            }, 2000);
+        } else {
+            showNotification('⚠️ No Expected Values could be auto-filled - insufficient title block data', 'warning');
+        }
+        
+        console.log('🤖 === AUTO-FILL COMPLETE ===');
+        return autoFilledValues;
+        
+    } catch (error) {
+        console.error('❌ Error auto-filling Expected Values:', error);
+        showNotification('❌ Error auto-filling Expected Values', 'error');
+        return null;
     }
 }
 
