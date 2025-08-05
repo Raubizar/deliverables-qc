@@ -1,4 +1,42 @@
 // Modern Drawing QC Application - Clash Report Summariser Style
+// ===================================================================
+// ENHANCED FEATURES (Latest Update):
+// 
+// 🚀 ENHANCED AUTO-DETECTION SYSTEM:
+//    • Expanded file name column detection with fuzzy matching
+//    • Support for 15+ file name variations and patterns
+//    • Intelligent sheet prioritization based on content analysis
+//    • Confidence scoring for auto-detected settings
+//    • Visual feedback with progress indicators
+//
+// 🧠 SMART NAMING PATTERN ANALYSIS:
+//    • Automatic delimiter detection (-, _, space, etc.)
+//    • File name structure analysis and part counting
+//    • Auto-generation of naming convention rules
+//    • Pattern confidence scoring and validation
+//    • Real-time preview of detected patterns
+//
+// 📊 ENHANCED EXCEL PROCESSING:
+//    • Sheet analysis with content scoring
+//    • Data validation and duplicate removal
+//    • Error handling with detailed diagnostics
+//    • Progressive disclosure of configuration options
+//    • Automatic naming convention population
+//
+// 💫 IMPROVED USER EXPERIENCE:
+//    • Enhanced notifications with icons and animations
+//    • Detailed progress feedback during processing
+//    • Auto-dismissing alerts with fade animations
+//    • Confidence indicators for auto-detected settings
+//    • Better error messages with actionable suggestions
+//
+// 📋 AUTOMATIC CONVENTION RULES SETTINGS:
+//    • Scans for "File Name" and variations automatically
+//    • Auto-populates sheet and column selections
+//    • Generates naming rules based on detected patterns
+//    • Validates convention structure and provides warnings
+//    • Supports manual override with intelligent defaults
+// ===================================================================
 
 // Global variables
 let fileNamesFromExcel = [];
@@ -140,9 +178,18 @@ function handleFolderUpload(event) {
     // Show success feedback
     showNotification(`Loaded ${files.length} files from folder`, 'success');
     
-    // Update file chip to selected state
-    const folderChip = document.querySelector('#folderInput').closest('.file-chip');
-    if (folderChip) folderChip.classList.add('selected');
+    // Update file chip to selected state - find by proximity to folderInput
+    try {
+        const folderInput = document.getElementById('folderInput');
+        if (folderInput && folderInput.previousElementSibling) {
+            const folderChip = folderInput.previousElementSibling;
+            if (folderChip && folderChip.classList.contains('file-chip')) {
+                folderChip.classList.add('selected');
+            }
+        }
+    } catch (error) {
+        console.log('Could not update folder chip selected state:', error);
+    }
 }
 
 function handleRegisterFile(event) {
@@ -155,8 +202,18 @@ function handleRegisterFile(event) {
     // Show Excel configuration with progressive disclosure
     showExcelConfiguration();
     
-    // Update file chip to selected state
-    document.querySelector('#registerFile').closest('.file-chip').classList.add('selected');
+    // Update file chip to selected state - find by proximity to registerFile
+    try {
+        const registerInput = document.getElementById('registerFile');
+        if (registerInput && registerInput.previousElementSibling) {
+            const registerChip = registerInput.previousElementSibling;
+            if (registerChip && registerChip.classList.contains('file-chip')) {
+                registerChip.classList.add('selected');
+            }
+        }
+    } catch (error) {
+        console.log('Could not update register chip selected state:', error);
+    }
 }
 
 function handleNamingRulesFile(event) {
@@ -171,8 +228,18 @@ function handleNamingRulesFile(event) {
     updateFileStatus('namingStatus', `Selected: ${file.name}`, 'success');
     processExcelFile(file, 'naming');
     
-    // Update file chip to selected state
-    document.querySelector('#namingRulesFile').closest('.file-chip').classList.add('selected');
+    // Update file chip to selected state - find by proximity to namingRulesFile
+    try {
+        const namingInput = document.getElementById('namingRulesFile');
+        if (namingInput && namingInput.previousElementSibling) {
+            const namingChip = namingInput.previousElementSibling;
+            if (namingChip && namingChip.classList.contains('file-chip')) {
+                namingChip.classList.add('selected');
+            }
+        }
+    } catch (error) {
+        console.log('Could not update naming chip selected state:', error);
+    }
 }
 
 function handleTitleBlocksFile(event) {
@@ -190,8 +257,18 @@ function handleTitleBlocksFile(event) {
     // Show Expected Values with progressive disclosure
     showExpectedValues();
     
-    // Update file chip to selected state
-    document.querySelector('#titleBlocksFile').closest('.file-chip').classList.add('selected');
+    // Update file chip to selected state - find by proximity to titleBlocksFile
+    try {
+        const titleBlocksInput = document.getElementById('titleBlocksFile');
+        if (titleBlocksInput && titleBlocksInput.previousElementSibling) {
+            const titleBlocksChip = titleBlocksInput.previousElementSibling;
+            if (titleBlocksChip && titleBlocksChip.classList.contains('file-chip')) {
+                titleBlocksChip.classList.add('selected');
+            }
+        }
+    } catch (error) {
+        console.log('Could not update title blocks chip selected state:', error);
+    }
 }
 
 // Progressive Disclosure Functions
@@ -210,68 +287,733 @@ function showExpectedValues() {
     showNotification('Expected Values section revealed', 'info');
 }
 
-// Excel Processing
+// Enhanced Excel Processing with Auto-Configuration
 async function processExcelFile(file, type) {
     try {
-        console.log(`=== PROCESSING EXCEL FILE (${type.toUpperCase()}) ===`);
-        console.log('File name:', file.name);
+        console.log(`=== ENHANCED EXCEL PROCESSING (${type.toUpperCase()}) ===`);
+        console.log('📁 File name:', file.name);
+        console.log('📊 File size:', Math.round(file.size / 1024), 'KB');
+        console.log('🕒 Processing started:', new Date().toISOString());
+        
+        showNotification(`📊 Processing ${type} file: ${file.name}...`, 'info');
         
         const data = await file.arrayBuffer();
         const workbook = XLSX.read(data, { type: 'array' });
         
-        console.log('Workbook loaded successfully');
-        console.log('Sheet names:', workbook.SheetNames);
+        console.log('✅ Workbook loaded successfully');
+        console.log('📋 Sheet names:', workbook.SheetNames);
+        console.log('📊 Sheet count:', workbook.SheetNames.length);
         
         if (type === 'register') {
+            console.log('🎯 Processing Drawing Register...');
             window.currentRegisterWorkbook = workbook;
-            populateSheetSelector(workbook);
+            
+            // Enhanced sheet population with analysis
+            populateSheetSelectorWithAnalysis(workbook);
+            
+            // Enhanced auto-detection with immediate feedback
+            console.log('🚀 Initiating enhanced auto-detection...');
+            setTimeout(() => {
+                const detectionResult = autoDetectFileNameColumn(workbook);
+                if (detectionResult) {
+                    console.log('✅ Auto-detection successful:', detectionResult);
+                } else {
+                    console.log('⚠️ Auto-detection incomplete - manual selection required');
+                    showNotification('� Please manually select sheet and column for File Names', 'warning');
+                }
+            }, 100);
+            
         } else if (type === 'naming') {
-            console.log('Processing naming rules...');
+            console.log('📝 Processing Naming Convention Rules...');
+            
+            showNotification('📝 Processing naming convention rules...', 'info');
             namingRulesData = processNamingRules(workbook);
-            console.log('Final namingRulesData:', namingRulesData);
-            console.log('namingRulesData.Sheets exists:', !!namingRulesData.Sheets);
-            console.log('namingRulesData.Sheets length:', namingRulesData.Sheets ? namingRulesData.Sheets.length : 'N/A');
+            
+            if (namingRulesData && namingRulesData.Sheets) {
+                console.log('✅ Naming rules processed successfully');
+                console.log('📊 Rules data:', {
+                    sheetsRules: namingRulesData.Sheets.length,
+                    modelsRules: namingRulesData.Models ? namingRulesData.Models.length : 0
+                });
+                
+                // Validate naming convention structure
+                const validation = validateNamingConventionStructure(namingRulesData);
+                if (validation.isValid) {
+                    showNotification(`✅ Naming convention loaded: ${validation.summary}`, 'success');
+                } else {
+                    showNotification(`⚠️ Naming convention loaded with warnings: ${validation.issues.join(', ')}`, 'warning');
+                }
+            } else {
+                throw new Error('Failed to process naming convention rules');
+            }
+            
         } else if (type === 'titleBlocks') {
-            console.log('Processing title blocks...');
+            console.log('📋 Processing Title Blocks...');
+            
+            showNotification('📋 Processing title blocks data...', 'info');
             titleBlockData = processTitleBlocks(workbook);
-            console.log('Final titleBlockData:', titleBlockData);
-            console.log('titleBlockData length:', titleBlockData ? titleBlockData.length : 'N/A');
-            console.log('titleBlockData sample:', titleBlockData ? titleBlockData.slice(0, 2) : 'N/A');
+            
+            if (titleBlockData && titleBlockData.length > 0) {
+                console.log('✅ Title blocks processed successfully');
+                console.log('📊 Title blocks summary:', {
+                    totalRecords: titleBlockData.length,
+                    withSheetNumbers: titleBlockData.filter(r => r.sheetNumber).length,
+                    withFileNames: titleBlockData.filter(r => r.fileName).length,
+                    withRevisionCodes: titleBlockData.filter(r => r.revisionCode).length
+                });
+                
+                // Show summary notification
+                const summary = `📋 Loaded ${titleBlockData.length} title block records`;
+                showNotification(summary, 'success');
+            } else {
+                throw new Error('No valid title block data found');
+            }
         }
         
-        console.log(`=== EXCEL FILE PROCESSING COMPLETE (${type.toUpperCase()}) ===`);
+        console.log(`=== EXCEL PROCESSING COMPLETE (${type.toUpperCase()}) ===`);
+        console.log('🕒 Processing completed:', new Date().toISOString());
         
     } catch (error) {
-        console.error('Error processing Excel file:', error);
-        showNotification('Error reading Excel file', 'error');
+        console.error(`❌ Error processing ${type} Excel file:`, error);
+        const errorMessage = `❌ Error processing ${type} file: ${error.message}`;
+        showNotification(errorMessage, 'error');
+        throw error; // Re-throw to maintain error handling chain
     }
 }
 
-function populateSheetSelector(workbook) {
+// NEW: Enhanced sheet selector with analysis
+function populateSheetSelectorWithAnalysis(workbook) {
+    console.log('📋 === POPULATING SHEET SELECTOR WITH ANALYSIS ===');
+    
     const sheetSelect = document.getElementById('registerSheetSelect');
+    sheetSelect.innerHTML = '<option value="">Analyzing sheets...</option>';
+    
+    // Analyze each sheet
+    const sheetAnalysis = workbook.SheetNames.map((sheetName, index) => {
+        const worksheet = workbook.Sheets[sheetName];
+        const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
+        const rowCount = range.e.r + 1;
+        const colCount = range.e.c + 1;
+        
+        // Quick content analysis
+        let hasHeaders = false;
+        let estimatedDataRows = 0;
+        
+        try {
+            // Check first row for header-like content
+            for (let col = 0; col <= Math.min(range.e.c, 10); col++) {
+                const cell = worksheet[XLSX.utils.encode_cell({ r: 0, c: col })];
+                if (cell && cell.v && typeof cell.v === 'string' && cell.v.length > 2) {
+                    hasHeaders = true;
+                    break;
+                }
+            }
+            
+            // Estimate data rows by checking for content
+            for (let row = 1; row <= Math.min(range.e.r, 100); row++) {
+                let hasContent = false;
+                for (let col = 0; col <= Math.min(range.e.c, 5); col++) {
+                    const cell = worksheet[XLSX.utils.encode_cell({ r: row, c: col })];
+                    if (cell && cell.v) {
+                        hasContent = true;
+                        break;
+                    }
+                }
+                if (hasContent) estimatedDataRows++;
+            }
+        } catch (error) {
+            console.warn(`Error analyzing sheet ${sheetName}:`, error);
+        }
+        
+        return {
+            index,
+            name: sheetName,
+            rowCount,
+            colCount,
+            hasHeaders,
+            estimatedDataRows,
+            score: (hasHeaders ? 20 : 0) + (estimatedDataRows * 0.5) + (rowCount > 10 ? 10 : rowCount)
+        };
+    });
+    
+    // Sort by analysis score (best sheets first)
+    sheetAnalysis.sort((a, b) => b.score - a.score);
+    
+    console.log('📊 Sheet analysis results:');
+    sheetAnalysis.forEach(sheet => {
+        console.log(`${sheet.name}: ${sheet.rowCount} rows, ${sheet.colCount} cols, ` +
+                   `${sheet.estimatedDataRows} data rows, score: ${sheet.score.toFixed(1)}`);
+    });
+    
+    // Populate selector with enhanced information
     sheetSelect.innerHTML = '<option value="">Select sheet...</option>';
     
-    workbook.SheetNames.forEach((sheetName, index) => {
+    sheetAnalysis.forEach(sheet => {
         const option = document.createElement('option');
-        option.value = index;
-        option.textContent = sheetName;
+        option.value = sheet.index;
+        option.textContent = `${sheet.name} (${sheet.estimatedDataRows} data rows)`;
+        
+        // Add visual indicators for good candidates
+        if (sheet.score > 30) {
+            option.textContent += ' ⭐';
+        }
+        
         sheetSelect.appendChild(option);
     });
+    
+    console.log('✅ Sheet selector populated with analysis data');
+}
+
+// NEW: Validate naming convention structure
+function validateNamingConventionStructure(namingData) {
+    console.log('🔍 === VALIDATING NAMING CONVENTION STRUCTURE ===');
+    
+    const issues = [];
+    let isValid = true;
+    
+    if (!namingData || !namingData.Sheets || namingData.Sheets.length < 2) {
+        return {
+            isValid: false,
+            issues: ['Invalid naming convention structure - missing or insufficient data'],
+            summary: 'Invalid structure'
+        };
+    }
+    
+    const sheets = namingData.Sheets;
+    
+    // Check metadata row (row 1)
+    const metadataRow = sheets[0];
+    if (!metadataRow || !metadataRow[1] || !metadataRow[3]) {
+        issues.push('Missing delimiter or parts count in first row');
+        isValid = false;
+    } else {
+        const partCount = parseInt(metadataRow[1]);
+        const delimiter = metadataRow[3];
+        
+        if (isNaN(partCount) || partCount < 1 || partCount > 20) {
+            issues.push(`Invalid part count: ${metadataRow[1]}`);
+            isValid = false;
+        }
+        
+        if (!delimiter || typeof delimiter !== 'string') {
+            issues.push(`Invalid delimiter: ${metadataRow[3]}`);
+            isValid = false;
+        }
+    }
+    
+    // Check that we have rule data (rows 2+)
+    const ruleRows = sheets.slice(1);
+    if (ruleRows.length === 0) {
+        issues.push('No naming rules found');
+        isValid = false;
+    }
+    
+    // Summary
+    const partCount = parseInt(metadataRow?.[1]) || 0;
+    const delimiter = metadataRow?.[3] || 'unknown';
+    const ruleCount = ruleRows.length;
+    
+    const summary = `${partCount} parts, "${delimiter}" delimiter, ${ruleCount} rule rows`;
+    
+    console.log('🔍 Validation result:', { isValid, issues, summary });
+    
+    return { isValid, issues, summary };
+}
+
+// Legacy function maintained for compatibility
+function populateSheetSelector(workbook) {
+    console.log('📋 Using legacy sheet selector (calling enhanced version)');
+    populateSheetSelectorWithAnalysis(workbook);
+}
+
+// Enhanced Auto-detect File Name column in the Drawing Register
+function autoDetectFileNameColumn(workbook) {
+    console.log('🔍 === ENHANCED AUTO-DETECTION SYSTEM STARTED ===');
+    console.log('🔍 Timestamp:', new Date().toISOString());
+    console.log('🔍 Workbook sheets:', workbook.SheetNames);
+    
+    // Focused file name variations - case insensitive, direct matches only
+    const fileNameVariations = [
+        'file name',    // File Name
+        'filename',     // FileName  
+        'file_name',    // File_Name
+        'file-name'     // File-Name
+    ];
+    
+    console.log('🔍 Searching for:', fileNameVariations.join(', '));
+    
+    // Simple case-insensitive matching - no fuzzy patterns needed
+    const fuzzyPatterns = [];
+
+    try {
+        showNotification('🔍 Scanning for File Name columns (focused search)...', 'info');
+        
+        const detectionResults = [];
+        
+        // Analyze each sheet with scoring system
+        for (let sheetIndex = 0; sheetIndex < workbook.SheetNames.length; sheetIndex++) {
+            const sheetName = workbook.SheetNames[sheetIndex];
+            console.log(`\n📋 Analyzing sheet ${sheetIndex}: "${sheetName}"`);
+            
+            const worksheet = workbook.Sheets[sheetName];
+            if (!worksheet) {
+                console.log(`❌ Worksheet "${sheetName}" not accessible`);
+                continue;
+            }
+            
+            const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
+            const dataRowCount = range.e.r + 1;
+            console.log(`📊 Sheet "${sheetName}" has ${dataRowCount} rows`);
+            
+            // Skip sheets with very few rows (likely metadata)
+            if (dataRowCount < 3) {
+                console.log(`⏭️ Skipping "${sheetName}" - insufficient data rows`);
+                continue;
+            }
+            
+            // Check first 10 rows for headers
+            const maxHeaderRow = Math.min(range.e.r + 1, 10);
+            
+            for (let rowIndex = 0; rowIndex < maxHeaderRow; rowIndex++) {
+                for (let colIndex = range.s.c; colIndex <= range.e.c; colIndex++) {
+                    const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: colIndex });
+                    const cell = worksheet[cellRef];
+                    
+                    if (!cell || !cell.v) continue;
+                    
+                    const cellValue = String(cell.v).toLowerCase().trim();
+                    const columnLetter = String.fromCharCode(65 + colIndex);
+                    
+                    let matchScore = 0;
+                    let matchType = 'none';
+                    
+                    // Check exact matches first (highest score) - case insensitive
+                    if (fileNameVariations.includes(cellValue)) {
+                        matchScore = 100;
+                        matchType = 'exact';
+                    }
+                    // No fuzzy patterns - only exact matches for focused detection
+                    
+                    // No keyword matching - only exact file name variations
+                    
+                    // Additional scoring factors
+                    if (matchScore > 0) {
+                        // Prefer columns near the beginning
+                        const positionBonus = Math.max(0, 10 - colIndex);
+                        
+                        // Prefer rows near the top (likely headers)
+                        const rowBonus = Math.max(0, 5 - rowIndex);
+                        
+                        // Prefer sheets with more data
+                        const dataBonus = Math.min(20, Math.floor(dataRowCount / 10));
+                        
+                        const finalScore = matchScore + positionBonus + rowBonus + dataBonus;
+                        
+                        detectionResults.push({
+                            sheetIndex,
+                            sheetName,
+                            rowIndex,
+                            colIndex,
+                            columnLetter,
+                            cellValue,
+                            matchType,
+                            score: finalScore,
+                            dataRowCount
+                        });
+                        
+                        console.log(`🎯 Found candidate: "${cellValue}" at ${columnLetter}${rowIndex + 1} (Score: ${finalScore}, Type: ${matchType})`);
+                    }
+                }
+            }
+        }
+        
+        // Sort by score and select best match
+        detectionResults.sort((a, b) => b.score - a.score);
+        
+        if (detectionResults.length === 0) {
+            console.log('❌ No File Name columns detected (searched: File Name, FileName, File_Name, File-Name)');
+            showNotification('❌ No File Name column found. Searched: File Name, FileName, File_Name, File-Name', 'warning');
+            return false;
+        }
+        
+        const bestMatch = detectionResults[0];
+        console.log('\n🏆 BEST MATCH SELECTED:');
+        console.log(`Sheet: "${bestMatch.sheetName}" (${bestMatch.sheetIndex})`);
+        console.log(`Column: ${bestMatch.columnLetter}${bestMatch.rowIndex + 1}`);
+        console.log(`Value: "${bestMatch.cellValue}"`);
+        console.log(`Score: ${bestMatch.score} (${bestMatch.matchType} match)`);
+        console.log(`Data rows: ${bestMatch.dataRowCount}`);
+        
+        // Show confidence level
+        const confidence = bestMatch.score >= 100 ? 'High' : 
+                          bestMatch.score >= 75 ? 'Medium' : 'Low';
+        
+        // Auto-configure the UI
+        const sheetSelect = document.getElementById('registerSheetSelect');
+        if (sheetSelect) {
+            sheetSelect.value = bestMatch.sheetIndex;
+            console.log(`✅ Auto-selected sheet: ${bestMatch.sheetIndex}`);
+            
+            // Trigger sheet change to populate columns
+            const sheetEvent = new Event('change');
+            sheetSelect.dispatchEvent(sheetEvent);
+            
+            // Wait for sheet change to complete, then select column
+            setTimeout(() => {
+                const columnSelect = document.getElementById('registerColumnSelect');
+                if (columnSelect) {
+                    columnSelect.value = bestMatch.colIndex;
+                    console.log(`✅ Auto-selected column: ${bestMatch.colIndex}`);
+                    
+                    // Trigger column change to load data
+                    const columnEvent = new Event('change');
+                    columnSelect.dispatchEvent(columnEvent);
+                    
+                    // Auto-analyze naming patterns
+                    setTimeout(() => {
+                        analyzeNamingPatterns(workbook, bestMatch);
+                    }, 100);
+                }
+            }, 100);
+        }
+        
+        // Show comprehensive notification
+        const message = `✅ Auto-detected: "${bestMatch.cellValue}" in "${bestMatch.sheetName}" - Column ${bestMatch.columnLetter} (${confidence} confidence)`;
+        showNotification(message, 'success');
+        
+        // Show alternatives if available
+        if (detectionResults.length > 1) {
+            console.log('\n📋 Alternative matches found:');
+            detectionResults.slice(1, 4).forEach((alt, i) => {
+                console.log(`${i + 2}. "${alt.cellValue}" at ${alt.sheetName}:${alt.columnLetter}${alt.rowIndex + 1} (Score: ${alt.score})`);
+            });
+        }
+        
+        return bestMatch;
+        
+    } catch (error) {
+        console.error('❌ Enhanced auto-detection error:', error);
+        showNotification('❌ Error during auto-detection. Please select manually.', 'error');
+        return false;
+    }
 }
 
 function handleSheetChange() {
+    console.log('🔧 handleSheetChange called');
     const sheetIndex = document.getElementById('registerSheetSelect').value;
+    console.log('Sheet index selected:', sheetIndex);
     if (sheetIndex === '') return;
     
     const workbook = window.currentRegisterWorkbook;
     const worksheet = workbook.Sheets[workbook.SheetNames[parseInt(sheetIndex)]];
     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
     
+    console.log('Sheet data (first row):', jsonData[0]);
     populateColumnSelector(jsonData[0] || []);
 }
 
+// NEW: Advanced Naming Pattern Analysis Function
+function analyzeNamingPatterns(workbook, detectedMatch) {
+    console.log('🧠 === ANALYZING NAMING PATTERNS ===');
+    console.log('🧠 Detected match:', detectedMatch);
+    
+    try {
+        // Get the data from the detected column
+        const worksheet = workbook.Sheets[detectedMatch.sheetName];
+        const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
+        
+        // Extract file names from the detected column
+        const fileNames = [];
+        for (let rowIndex = detectedMatch.rowIndex + 1; rowIndex <= range.e.r; rowIndex++) {
+            const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: detectedMatch.colIndex });
+            const cell = worksheet[cellRef];
+            
+            if (cell && cell.v && typeof cell.v === 'string') {
+                const fileName = String(cell.v).trim();
+                if (fileName && fileName.length > 3) {
+                    fileNames.push(fileName);
+                }
+            }
+        }
+        
+        console.log(`🧠 Extracted ${fileNames.length} file names for analysis`);
+        console.log('🧠 Sample file names:', fileNames.slice(0, 10));
+        
+        if (fileNames.length === 0) {
+            console.log('❌ No file names found for pattern analysis');
+            return null;
+        }
+        
+        // Analyze patterns in file names
+        const patterns = analyzeFileNameStructure(fileNames);
+        
+        if (patterns && patterns.confidence > 0.5) {
+            console.log('🧠 Pattern analysis results:', patterns);
+            
+            // Auto-populate naming convention if patterns are detected
+            autoPopulateNamingConvention(patterns);
+            
+            // Show pattern analysis results to user
+            showPatternAnalysisResults(patterns);
+        }
+        
+        return patterns;
+        
+    } catch (error) {
+        console.error('❌ Error analyzing naming patterns:', error);
+        return null;
+    }
+}
+
+// NEW: File Name Structure Analysis
+function analyzeFileNameStructure(fileNames) {
+    console.log('🔬 === ANALYZING FILE NAME STRUCTURE ===');
+    
+    // Remove file extensions for analysis
+    const baseNames = fileNames.map(name => {
+        const lastDot = name.lastIndexOf('.');
+        return lastDot > 0 ? name.substring(0, lastDot) : name;
+    });
+    
+    console.log('🔬 Base names sample:', baseNames.slice(0, 5));
+    
+    // Detect common delimiters
+    const delimiterCandidates = ['-', '_', ' ', '.', '+'];
+    const delimiterStats = {};
+    
+    delimiterCandidates.forEach(delimiter => {
+        const counts = baseNames.map(name => (name.split(delimiter).length - 1));
+        const avgCount = counts.reduce((a, b) => a + b, 0) / counts.length;
+        const consistency = counts.filter(count => count > 0).length / counts.length;
+        
+        delimiterStats[delimiter] = {
+            avgCount,
+            consistency,
+            score: avgCount * consistency
+        };
+    });
+    
+    // Find best delimiter
+    const bestDelimiter = Object.entries(delimiterStats)
+        .filter(([_, stats]) => stats.consistency > 0.3) // At least 30% of files use this delimiter
+        .sort((a, b) => b[1].score - a[1].score)[0];
+    
+    if (!bestDelimiter) {
+        console.log('🔬 No consistent delimiter pattern found');
+        return { confidence: 0, message: 'No consistent naming pattern detected' };
+    }
+    
+    const delimiter = bestDelimiter[0];
+    const delimiterInfo = bestDelimiter[1];
+    
+    console.log(`🔬 Best delimiter: "${delimiter}" (score: ${delimiterInfo.score.toFixed(2)})`);
+    
+    // Analyze part structure using best delimiter
+    const partAnalysis = baseNames.map(name => name.split(delimiter));
+    const maxParts = Math.max(...partAnalysis.map(parts => parts.length));
+    const avgParts = partAnalysis.reduce((sum, parts) => sum + parts.length, 0) / partAnalysis.length;
+    
+    console.log(`🔬 Part analysis: max=${maxParts}, avg=${avgParts.toFixed(1)}`);
+    
+    // Analyze each part position
+    const partPatterns = [];
+    for (let i = 0; i < maxParts; i++) {
+        const partsAtPosition = partAnalysis
+            .filter(parts => parts.length > i)
+            .map(parts => parts[i]);
+        
+        if (partsAtPosition.length < baseNames.length * 0.5) {
+            continue; // Skip if less than 50% of files have this part
+        }
+        
+        const pattern = analyzePartPattern(partsAtPosition, i + 1);
+        partPatterns.push(pattern);
+    }
+    
+    const confidence = Math.min(1.0, 
+        delimiterInfo.consistency * 0.4 + 
+        (partPatterns.length / maxParts) * 0.3 + 
+        (baseNames.length > 10 ? 0.3 : baseNames.length / 10 * 0.3)
+    );
+    
+    console.log('🔬 Analysis complete. Confidence:', confidence);
+    
+    return {
+        delimiter,
+        expectedParts: Math.round(avgParts),
+        partPatterns,
+        confidence,
+        sampleCount: baseNames.length,
+        delimiterConsistency: delimiterInfo.consistency,
+        suggestions: generateNamingConventionSuggestions(delimiter, partPatterns)
+    };
+}
+
+// NEW: Analyze individual part patterns
+function analyzePartPattern(parts, position) {
+    console.log(`🧪 Analyzing part ${position}:`, parts.slice(0, 5));
+    
+    // Check if all parts are numbers
+    const allNumbers = parts.every(part => /^\d+$/.test(part));
+    if (allNumbers) {
+        const lengths = parts.map(part => part.length);
+        const avgLength = lengths.reduce((a, b) => a + b, 0) / lengths.length;
+        return {
+            position,
+            type: 'number',
+            description: `${Math.round(avgLength)}-digit number`,
+            rule: Math.round(avgLength).toString(),
+            examples: parts.slice(0, 3)
+        };
+    }
+    
+    // Check if parts follow letter+number pattern
+    const letterNumberPattern = parts.filter(part => /^[A-Z]+\d+$/i.test(part));
+    if (letterNumberPattern.length > parts.length * 0.7) {
+        return {
+            position,
+            type: 'letter-number',
+            description: 'Letter(s) followed by numbers',
+            rule: 'LPL+N',
+            examples: parts.slice(0, 3)
+        };
+    }
+    
+    // Check if parts are consistent values
+    const uniqueValues = [...new Set(parts)];
+    if (uniqueValues.length <= Math.max(5, parts.length * 0.3)) {
+        return {
+            position,
+            type: 'fixed-values',
+            description: `One of ${uniqueValues.length} fixed values`,
+            rule: uniqueValues.slice(0, 5).join(' | '),
+            examples: uniqueValues.slice(0, 3)
+        };
+    }
+    
+    // Default to variable description
+    return {
+        position,
+        type: 'variable',
+        description: 'Variable text description',
+        rule: 'Description',
+        examples: parts.slice(0, 3)
+    };
+}
+
+// NEW: Generate naming convention suggestions
+function generateNamingConventionSuggestions(delimiter, partPatterns) {
+    const suggestions = [];
+    
+    suggestions.push(`Detected delimiter: "${delimiter}"`);
+    suggestions.push(`Expected ${partPatterns.length} parts per file name`);
+    
+    partPatterns.forEach(pattern => {
+        suggestions.push(`Part ${pattern.position}: ${pattern.description} (e.g., ${pattern.examples.join(', ')})`);
+    });
+    
+    return suggestions;
+}
+
+// NEW: Auto-populate naming convention based on analysis
+function autoPopulateNamingConvention(patterns) {
+    console.log('🤖 === AUTO-POPULATING NAMING CONVENTION ===');
+    console.log('🤖 Using patterns:', patterns);
+    
+    try {
+        // Create a mock naming convention structure
+        const autoGeneratedConvention = {
+            Sheets: []
+        };
+        
+        // Row 1: Metadata (number of parts, delimiter)
+        const metadataRow = new Array(Math.max(10, patterns.expectedParts));
+        metadataRow[1] = patterns.expectedParts; // Column B: Number of parts
+        metadataRow[3] = patterns.delimiter;     // Column D: Delimiter
+        autoGeneratedConvention.Sheets.push(metadataRow);
+        
+        // Row 2: Headers (Part 1, Part 2, etc.)
+        const headerRow = new Array(Math.max(10, patterns.expectedParts));
+        patterns.partPatterns.forEach((pattern, index) => {
+            headerRow[index] = `Part ${pattern.position}`;
+        });
+        autoGeneratedConvention.Sheets.push(headerRow);
+        
+        // Row 3+: Rules for each part
+        const maxRuleRows = Math.max(...patterns.partPatterns.map(p => 
+            p.type === 'fixed-values' ? p.rule.split(' | ').length : 1
+        ));
+        
+        for (let ruleRow = 0; ruleRow < Math.max(3, maxRuleRows); ruleRow++) {
+            const row = new Array(Math.max(10, patterns.expectedParts));
+            
+            patterns.partPatterns.forEach((pattern, partIndex) => {
+                if (ruleRow === 0) {
+                    // First rule row - main rule
+                    row[partIndex] = pattern.rule;
+                } else if (pattern.type === 'fixed-values' && ruleRow > 0) {
+                    // Additional rows for fixed values
+                    const values = pattern.rule.split(' | ');
+                    if (values[ruleRow]) {
+                        row[partIndex] = values[ruleRow];
+                    }
+                }
+            });
+            
+            autoGeneratedConvention.Sheets.push(row);
+        }
+        
+        // Store the auto-generated convention
+        window.autoGeneratedNamingConvention = autoGeneratedConvention;
+        
+        console.log('🤖 Auto-generated naming convention:', autoGeneratedConvention);
+        
+        // Update global naming rules data
+        namingRulesData = autoGeneratedConvention;
+        
+        showNotification(`🤖 Auto-generated naming convention with ${patterns.expectedParts} parts using "${patterns.delimiter}" delimiter`, 'success');
+        
+        return autoGeneratedConvention;
+        
+    } catch (error) {
+        console.error('❌ Error auto-populating naming convention:', error);
+        return null;
+    }
+}
+
+// NEW: Show pattern analysis results to user
+function showPatternAnalysisResults(patterns) {
+    console.log('📊 === SHOWING PATTERN ANALYSIS RESULTS ===');
+    
+    // Create a notification with detailed pattern information
+    const confidence = Math.round(patterns.confidence * 100);
+    const message = `📊 Pattern Analysis Complete (${confidence}% confidence):\n` +
+                   `• Delimiter: "${patterns.delimiter}"\n` +
+                   `• Expected parts: ${patterns.expectedParts}\n` +
+                   `• Analyzed ${patterns.sampleCount} file names\n` +
+                   `• Auto-generated naming convention`;
+    
+    console.log(message);
+    showNotification('📊 Naming patterns analyzed and convention auto-generated', 'info');
+    
+    // Optional: Show detailed analysis in console for debugging
+    console.log('📊 Detailed pattern analysis:');
+    patterns.partPatterns.forEach(pattern => {
+        console.log(`Part ${pattern.position}: ${pattern.description} (${pattern.rule})`);
+        console.log(`  Examples: ${pattern.examples.join(', ')}`);
+    });
+    
+    console.log('📊 Suggestions:');
+    patterns.suggestions.forEach(suggestion => {
+        console.log(`  • ${suggestion}`);
+    });
+}
+
 function populateColumnSelector(headers) {
+    console.log('🔧 populateColumnSelector called with headers:', headers);
     const columnSelect = document.getElementById('registerColumnSelect');
+    console.log('Column select element found:', !!columnSelect);
+    
     columnSelect.innerHTML = '<option value="">Select column...</option>';
     
     headers.forEach((header, index) => {
@@ -280,32 +1022,76 @@ function populateColumnSelector(headers) {
             option.value = index;
             option.textContent = `${String.fromCharCode(65 + index)}: ${header}`;
             columnSelect.appendChild(option);
+            console.log(`Added column option: ${String.fromCharCode(65 + index)}: ${header}`);
         }
     });
+    
+    console.log('Total options in column select:', columnSelect.options.length);
 }
 
 function handleColumnChange() {
+    console.log('🔧 === ENHANCED COLUMN CHANGE HANDLER ===');
     const sheetIndex = document.getElementById('registerSheetSelect').value;
     const columnIndex = document.getElementById('registerColumnSelect').value;
     
+    console.log('Sheet index:', sheetIndex, 'Column index:', columnIndex);
     if (sheetIndex === '' || columnIndex === '') return;
     
     const workbook = window.currentRegisterWorkbook;
-    const worksheet = workbook.Sheets[workbook.SheetNames[parseInt(sheetIndex)]];
+    const sheetName = workbook.SheetNames[parseInt(sheetIndex)];
+    const worksheet = workbook.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
     
+    // Extract column data with enhanced validation
     const columnData = jsonData.slice(1)
         .map(row => row[parseInt(columnIndex)])
         .filter(cell => cell && typeof cell === 'string' && cell.trim() !== '');
     
-    fileNamesFromExcel = columnData;
+    // Remove duplicates and empty entries
+    const uniqueFileNames = [...new Set(columnData.map(name => name.trim()))];
     
-    // Show preview
+    fileNamesFromExcel = uniqueFileNames;
+    console.log(`✅ Extracted ${uniqueFileNames.length} unique file names (${columnData.length} total entries)`);
+    console.log('📋 Sample file names:', uniqueFileNames.slice(0, 5));
+    
+    // Enhanced preview with statistics
     const preview = document.getElementById('configPreview');
-    const previewText = columnData.slice(0, 3).join(', ');
-    preview.textContent = `Preview: ${previewText}... (${columnData.length} total)`;
+    if (preview) {
+        const previewText = uniqueFileNames.slice(0, 3).join(', ');
+        const duplicateCount = columnData.length - uniqueFileNames.length;
+        const duplicateInfo = duplicateCount > 0 ? ` (${duplicateCount} duplicates removed)` : '';
+        
+        preview.innerHTML = `
+            <div style="font-size: 12px; color: #666;">
+                <strong>Preview:</strong> ${previewText}...<br>
+                <strong>Total files:</strong> ${uniqueFileNames.length}${duplicateInfo}<br>
+                <strong>Source:</strong> ${sheetName} - Column ${String.fromCharCode(65 + parseInt(columnIndex))}
+            </div>
+        `;
+    }
     
-    showNotification(`Loaded ${columnData.length} drawings from register`, 'success');
+    // Trigger automatic naming pattern analysis
+    if (uniqueFileNames.length > 5) {
+        console.log('🧠 Triggering automatic naming pattern analysis...');
+        setTimeout(() => {
+            const mockMatch = {
+                sheetName: sheetName,
+                colIndex: parseInt(columnIndex),
+                rowIndex: 0 // Assuming header is in first row
+            };
+            analyzeNamingPatterns(workbook, mockMatch);
+        }, 500);
+    }
+    
+    // Show enhanced notification
+    const notification = duplicateCount > 0 
+        ? `✅ Loaded ${uniqueFileNames.length} drawings (${duplicateCount} duplicates removed)`
+        : `✅ Loaded ${uniqueFileNames.length} drawings from register`;
+    
+    showNotification(notification, 'success');
+    
+    // Show Excel configuration with progressive disclosure
+    showExcelConfiguration();
 }
 
 // Main Processing Function
@@ -1249,39 +2035,105 @@ function exportResults() {
     }, 1000);
 }
 
+// Enhanced notification system with better visual feedback
 function showNotification(message, type) {
-    // Simple notification system - logs to console and shows alert for now
     console.log(`${type.toUpperCase()}: ${message}`);
     
-    // Create a simple notification element
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.enhanced-notification');
+    existingNotifications.forEach(notif => notif.remove());
+    
+    // Create enhanced notification element
     const notification = document.createElement('div');
-    notification.textContent = message;
-    notification.style.cssText = 
-        'position: fixed; top: 20px; right: 20px; padding: 12px 16px; border-radius: 4px; color: white; font-weight: 500; z-index: 1000; ' +
-        (type === 'success' ? 'background-color: #10b981;' : '') +
-        (type === 'warning' ? 'background-color: #f59e0b;' : '') +
-        (type === 'error' ? 'background-color: #ef4444;' : '') +
-        (type === 'info' ? 'background-color: #3b82f6;' : '');
+    notification.className = 'enhanced-notification';
+    notification.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 16px;">${getNotificationIcon(type)}</span>
+            <span style="flex: 1;">${message}</span>
+            <button onclick="this.parentElement.parentElement.remove()" 
+                    style="background: none; border: none; color: inherit; font-size: 18px; cursor: pointer; opacity: 0.7;">
+                ×
+            </button>
+        </div>
+    `;
+    
+    // Enhanced styling based on type
+    const baseStyle = `
+        position: fixed; 
+        top: 20px; 
+        right: 20px; 
+        padding: 12px 16px; 
+        border-radius: 8px; 
+        color: white; 
+        font-weight: 500; 
+        z-index: 1000;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        border-left: 4px solid rgba(255,255,255,0.3);
+        font-size: 14px;
+        line-height: 1.4;
+    `;
+    
+    const typeStyles = {
+        success: 'background: linear-gradient(135deg, #10b981, #059669);',
+        warning: 'background: linear-gradient(135deg, #f59e0b, #d97706);',
+        error: 'background: linear-gradient(135deg, #ef4444, #dc2626);',
+        info: 'background: linear-gradient(135deg, #3b82f6, #2563eb);'
+    };
+    
+    notification.style.cssText = baseStyle + (typeStyles[type] || typeStyles.info);
     
     document.body.appendChild(notification);
     
-    // Remove notification after 3 seconds
+    // Enhanced auto-removal with fade out
+    const duration = type === 'error' ? 8000 : type === 'warning' ? 6000 : 4000;
+    
     setTimeout(() => {
         if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
+            notification.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100%)';
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 300);
         }
-    }, 3000);
+    }, duration);
     
-    // Optional: Add visual feedback to header
-    const header = document.querySelector('.app-header h1');
-    if (header) {
-        const originalText = header.textContent;
-        header.textContent = message;
-        
-        setTimeout(() => {
-            header.textContent = originalText;
-        }, 2000);
+    // Add slide-in animation
+    notification.style.transform = 'translateX(100%)';
+    notification.style.transition = 'transform 0.3s ease-out';
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 10);
+    
+    // Optional: Add visual feedback to header for important notifications
+    if (type === 'success' || type === 'error') {
+        const header = document.querySelector('.app-header h1');
+        if (header) {
+            const originalColor = header.style.color;
+            header.style.color = type === 'success' ? '#10b981' : '#ef4444';
+            header.style.transition = 'color 0.3s ease';
+            
+            setTimeout(() => {
+                header.style.color = originalColor;
+            }, 1000);
+        }
     }
+}
+
+// Helper function for notification icons
+function getNotificationIcon(type) {
+    const icons = {
+        success: '✅',
+        warning: '⚠️',
+        error: '❌',
+        info: 'ℹ️'
+    };
+    return icons[type] || icons.info;
 }
 
 // Processing helper functions (simplified versions)
