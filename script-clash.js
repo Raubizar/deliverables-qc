@@ -159,6 +159,169 @@ document.addEventListener('DOMContentLoaded', function() {
         return { dataStatus, tables };
     };
     
+    // Test comment functionality with preservation checking
+    window.testComments = function() {
+        console.log('🧪 Testing comment functionality...');
+        
+        const commentInputs = document.querySelectorAll('.comment-input');
+        console.log(`Found ${commentInputs.length} comment inputs`);
+        
+        commentInputs.forEach((input, index) => {
+            console.log(`Comment input ${index}:`, {
+                placeholder: input.placeholder,
+                readonly: input.readOnly,
+                disabled: input.disabled,
+                value: input.value,
+                tabIndex: input.tabIndex,
+                dataFileName: input.getAttribute('data-file-name')
+            });
+        });
+        
+        if (commentInputs.length > 0) {
+            const testInput = commentInputs[0];
+            console.log('🔧 Testing first comment input...');
+            testInput.focus();
+            testInput.value = 'Test comment added at ' + new Date().toLocaleTimeString();
+            testInput.dispatchEvent(new Event('input'));
+            testInput.blur();
+            console.log('✅ Added test comment to first input');
+        }
+        
+        console.log('💾 Current comments data:', commentsData);
+        return {
+            totalInputs: commentInputs.length,
+            commentsData: commentsData
+        };
+    };
+    
+    // New function to check comment preservation during Run Checks
+    window.debugCommentPreservation = function() {
+        console.log('🔍 === COMMENT PRESERVATION DEBUG ===');
+        
+        // Check current comments in data store
+        console.log('💾 Comments in data store:', commentsData);
+        
+        // Check current comments in UI
+        const commentInputs = document.querySelectorAll('.comment-input');
+        const uiComments = {};
+        
+        commentInputs.forEach((input, index) => {
+            const fileName = input.getAttribute('data-file-name') || 
+                            input.closest('tr')?.cells[2]?.textContent?.trim();
+            if (fileName && input.value) {
+                uiComments[fileName] = input.value;
+            }
+        });
+        
+        console.log('🖥️ Comments in UI:', uiComments);
+        
+        // Compare data store vs UI
+        const allFiles = new Set([...Object.keys(commentsData), ...Object.keys(uiComments)]);
+        console.log('📊 Comment comparison:');
+        allFiles.forEach(fileName => {
+            const dataValue = commentsData[fileName] || '';
+            const uiValue = uiComments[fileName] || '';
+            const match = dataValue === uiValue;
+            console.log(`  ${fileName}: Data="${dataValue}", UI="${uiValue}", Match=${match}`);
+        });
+        
+        return {
+            dataStore: commentsData,
+            uiComments: uiComments,
+            inputsFound: commentInputs.length
+        };
+    };
+    
+    // Manual comment preservation functions for testing
+    window.forcePreserveComments = function() {
+        const count = preserveAllComments();
+        console.log(`🔒 Manually preserved ${count} comments`);
+        return count;
+    };
+    
+    window.forceRestoreComments = function() {
+        const count = restoreAllComments();
+        console.log(`🔄 Manually restored ${count} comments`);
+        return count;
+    };
+    
+    window.forceVerifyComments = function() {
+        const result = verifyCommentRestoration();
+        console.log(`✅ Verification result:`, result);
+        return result;
+    };
+    
+    // Emergency comment rescue function
+    window.emergencyCommentRescue = function() {
+        console.log('🚨 === EMERGENCY COMMENT RESCUE ===');
+        
+        // Try to preserve from UI first
+        const preserved = preserveAllComments();
+        console.log(`🚨 Emergency preserved: ${preserved} comments`);
+        
+        // Then restore them
+        const restored = restoreAllComments();
+        console.log(`🚨 Emergency restored: ${restored} comments`);
+        
+        // Setup inputs
+        setupCommentInputs();
+        
+        // Verify
+        const verified = verifyCommentRestoration();
+        console.log(`🚨 Emergency verification:`, verified);
+        
+        return {
+            preserved: preserved,
+            restored: restored,
+            verified: verified
+        };
+    };
+    
+    // Real-time comment monitor
+    window.monitorComments = function() {
+        console.log('👀 === REAL-TIME COMMENT MONITOR ===');
+        
+        const checkComments = () => {
+            const inputs = document.querySelectorAll('.comment-input');
+            const currentComments = {};
+            
+            inputs.forEach(input => {
+                const fileName = input.getAttribute('data-file-name') || 
+                                input.closest('tr')?.cells[2]?.textContent?.trim();
+                if (fileName && input.value) {
+                    currentComments[fileName] = input.value;
+                }
+            });
+            
+            console.log('👀 Live UI comments:', currentComments);
+            console.log('💾 Stored comments:', commentsData);
+            
+            // Check for mismatches
+            const allFiles = new Set([...Object.keys(currentComments), ...Object.keys(commentsData)]);
+            let mismatches = 0;
+            
+            allFiles.forEach(fileName => {
+                const uiValue = currentComments[fileName] || '';
+                const storedValue = commentsData[fileName] || '';
+                if (uiValue !== storedValue) {
+                    console.warn(`👀 MISMATCH for ${fileName}: UI="${uiValue}", Stored="${storedValue}"`);
+                    mismatches++;
+                }
+            });
+            
+            if (mismatches === 0) {
+                console.log('👀 ✅ All comments in sync');
+            } else {
+                console.warn(`👀 ⚠️ ${mismatches} comment mismatches detected`);
+            }
+        };
+        
+        // Monitor every 2 seconds
+        const interval = setInterval(checkComments, 2000);
+        console.log('👀 Monitor started (every 2 seconds). Call clearInterval(' + interval + ') to stop.');
+        return interval;
+    };
+    
     // Add test data generation for debugging
     window.generateTestData = function() {
         console.log('🧪 Generating test data for debugging...');
@@ -257,7 +420,19 @@ function initializeEventListeners() {
         const runChecks = document.getElementById('runChecks');
         
         if (fileTypeFilter) fileTypeFilter.addEventListener('change', handleFilterChange);
-        if (runChecks) runChecks.addEventListener('click', runAllChecks);
+        if (runChecks) {
+            // CRITICAL: Add preservation BEFORE the main function
+            runChecks.addEventListener('click', function(event) {
+                console.log('🔴 RUN CHECKS CLICKED - IMMEDIATE COMMENT PRESERVATION');
+                
+                // Step 1: IMMEDIATELY preserve all comments
+                const preservedCount = preserveAllComments();
+                console.log(`🔴 EMERGENCY PRESERVATION: ${preservedCount} comments saved`);
+                
+                // Step 2: Run the actual checks
+                runAllChecks();
+            });
+        }
         
         // Check if searchInput exists before adding listener
         const searchInput = document.getElementById('searchInput');
@@ -600,7 +775,7 @@ function populateInitialTablesEnhanced() {
                             <td>${tbData.stageDescription || 'N/A'}</td>
                             <td><span class="status-badge info">Preview</span></td>
                             <td><span class="status-badge info">Preview: Available</span></td>
-                            <td><input type="text" class="comment-input" placeholder="Preview mode..." readonly></td>
+                            <td><input type="text" class="comment-input" placeholder="Add your comments here..." data-sheet-number="${sheetNumber}" data-file-name="${fileName}"></td>
                             <td><span class="status-badge info">Preview</span></td>
                             <td>Preview data</td>
                         </tr>
@@ -609,6 +784,12 @@ function populateInitialTablesEnhanced() {
                 
                 qaqcTable.innerHTML = qaqcContent;
                 console.log('✅ QA-QC populated with', Math.min(10, titleBlockData.length), 'entries');
+                
+                // Setup comment inputs for the QA-QC table
+                setTimeout(() => {
+                    setupCommentInputs();
+                    console.log('✅ Comment inputs setup for QA-QC table');
+                }, 50);
             } catch (error) {
                 console.error('❌ Error populating QA-QC:', error);
             }
@@ -634,11 +815,15 @@ function populateInitialTablesEnhanced() {
             if (totalRows > 0) {
                 console.log(`🎉 SUCCESS: ${totalRows} total rows populated!`);
                 showNotification(`✅ Tables populated successfully! (${totalRows} total rows)`, 'success');
+                
+                // Setup comment inputs for all tables
+                setupCommentInputs();
+                console.log('✅ Comment inputs setup for all tables');
             } else {
                 console.log('⚠️ WARNING: No tables were populated');
                 showNotification('⚠️ Tables are empty. Check console for details.', 'warning');
             }
-        }, 200);
+        }, 300);
         
     } catch (error) {
         console.error('❌ Critical error in table population:', error);
@@ -1946,6 +2131,107 @@ function handleColumnChange() {
     showExcelConfiguration();
 }
 
+// CRITICAL: Function to preserve all current comments
+function preserveAllComments() {
+    console.log('🔒 === PRESERVING ALL COMMENTS ===');
+    const commentInputs = document.querySelectorAll('.comment-input');
+    console.log(`🔒 Found ${commentInputs.length} comment inputs to preserve`);
+    
+    let preservedCount = 0;
+    commentInputs.forEach((input, index) => {
+        // Get file name from multiple sources for reliability
+        let fileName = input.getAttribute('data-file-name');
+        if (!fileName) {
+            const row = input.closest('tr');
+            fileName = row?.cells[2]?.textContent?.trim();
+        }
+        
+        if (fileName && input.value && input.value.trim()) {
+            const comment = input.value.trim();
+            commentsData[fileName] = comment;
+            preservedCount++;
+            console.log(`🔒 Preserved comment for "${fileName}": "${comment}"`);
+        }
+    });
+    
+    console.log(`🔒 Total comments preserved: ${preservedCount}`);
+    console.log('🔒 Complete comments data:', commentsData);
+    return preservedCount;
+}
+
+// CRITICAL: Function to restore all preserved comments after UI update
+function restoreAllComments() {
+    console.log('🔄 === RESTORING ALL COMMENTS ===');
+    console.log('🔄 Comments to restore:', commentsData);
+    
+    const commentInputs = document.querySelectorAll('.comment-input');
+    console.log(`🔄 Found ${commentInputs.length} comment inputs to restore to`);
+    
+    let restoredCount = 0;
+    commentInputs.forEach((input, index) => {
+        // Get file name from multiple sources for reliability
+        let fileName = input.getAttribute('data-file-name');
+        if (!fileName) {
+            const row = input.closest('tr');
+            fileName = row?.cells[2]?.textContent?.trim();
+        }
+        
+        if (fileName && commentsData[fileName]) {
+            const comment = commentsData[fileName];
+            input.value = comment;
+            restoredCount++;
+            console.log(`🔄 Restored comment for "${fileName}": "${comment}"`);
+            
+            // Trigger input event to ensure it's properly stored
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    });
+    
+    console.log(`🔄 Total comments restored: ${restoredCount}`);
+    return restoredCount;
+}
+
+// CRITICAL: Function to verify comment restoration worked
+function verifyCommentRestoration() {
+    console.log('✅ === VERIFYING COMMENT RESTORATION ===');
+    
+    const commentInputs = document.querySelectorAll('.comment-input');
+    let verifiedCount = 0;
+    let errorCount = 0;
+    
+    commentInputs.forEach((input, index) => {
+        let fileName = input.getAttribute('data-file-name');
+        if (!fileName) {
+            const row = input.closest('tr');
+            fileName = row?.cells[2]?.textContent?.trim();
+        }
+        
+        if (fileName && commentsData[fileName]) {
+            const expectedComment = commentsData[fileName];
+            const actualComment = input.value;
+            
+            if (actualComment === expectedComment) {
+                verifiedCount++;
+                console.log(`✅ Comment verified for "${fileName}": "${actualComment}"`);
+            } else {
+                errorCount++;
+                console.error(`❌ Comment mismatch for "${fileName}": expected "${expectedComment}", got "${actualComment}"`);
+                // Try to fix it
+                input.value = expectedComment;
+                console.log(`🔧 Fixed comment for "${fileName}"`);
+            }
+        }
+    });
+    
+    console.log(`✅ Verification complete: ${verifiedCount} verified, ${errorCount} errors fixed`);
+    
+    if (verifiedCount > 0) {
+        showNotification(`✅ ${verifiedCount} comments preserved successfully`, 'success');
+    }
+    
+    return { verified: verifiedCount, errors: errorCount };
+}
+
 // Main Processing Function
 async function runAllChecks() {
     console.log('🚀 === RUN ALL CHECKS INITIATED ===');
@@ -1954,6 +2240,10 @@ async function runAllChecks() {
     console.log('  - fileNamesFromExcel length:', fileNamesFromExcel ? fileNamesFromExcel.length : 'undefined');
     console.log('  - uploadedFiles length:', uploadedFiles ? uploadedFiles.length : 'undefined');
     console.log('  - titleBlockData length:', titleBlockData ? titleBlockData.length : 'undefined');
+    
+    // STEP 1: PRESERVE ALL COMMENTS BEFORE PROCESSING
+    const preservedCount = preserveAllComments();
+    console.log(`💾 Step 1 Complete: ${preservedCount} comments preserved`);
     
     showNotification('Running quality checks...', 'info');
     
@@ -1994,6 +2284,17 @@ async function runAllChecks() {
         updateSummaryMetrics(drawingListResults, namingResults, qaqcResults);
         updateResultsTables(drawingListResults, namingResults, qaqcResults);
         updateCharts(drawingListResults, namingResults, qaqcResults);
+        
+        // STEP 2: RESTORE COMMENTS AFTER UI UPDATE
+        setTimeout(() => {
+            const restoredCount = restoreAllComments();
+            console.log(`🔄 Step 2 Complete: ${restoredCount} comments restored`);
+            
+            // Final verification
+            setTimeout(() => {
+                verifyCommentRestoration();
+            }, 200);
+        }, 150);
         
         showNotification('✅ Quality checks completed successfully', 'success');
         console.log('🎉 All checks completed successfully');
@@ -2477,6 +2778,11 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
     console.log('📝 Naming results length:', namingResults ? namingResults.length : 'undefined');
     console.log('📋 QA-QC results length:', qaqcResults ? qaqcResults.length : 'undefined');
     
+    // CRITICAL: Preserve comments AGAIN before table update
+    console.log('🔴 EMERGENCY PRESERVATION BEFORE TABLE UPDATE');
+    const emergencyPreserved = preserveAllComments();
+    console.log(`🔴 Emergency preserved ${emergencyPreserved} comments`);
+    
     // Update Drawing List table with validation
     const drawingTable = document.getElementById('drawingListResults');
     if (drawingTable && drawingResults) {
@@ -2541,6 +2847,11 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
             
             // Get existing comment for this file
             const existingComment = commentsData[result.fileName] || '';
+            console.log(`💬 Comment preservation for ${result.fileName}:`, {
+                hasComment: !!existingComment,
+                commentValue: existingComment,
+                allCommentsKeys: Object.keys(commentsData)
+            });
             
             return `
                 <tr>
@@ -2554,7 +2865,7 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
                     <td>${result.stage || 'N/A'}</td>
                     <td><span class="status-badge ${namingStatusClass}">${namingStatus}</span></td>
                     <td><span class="status-badge success">${deliveryStatus}</span></td>
-                    <td><input type="text" class="comment-input" placeholder="Add comment..." value="${existingComment}"></td>
+                    <td><input type="text" class="comment-input" placeholder="Add comment..." value="${existingComment}" data-file-name="${result.fileName}"></td>
                     <td><span class="status-badge ${result.result === 'PASS' ? 'success' : result.result === 'FAIL' ? 'error' : 'warning'}">${result.result || 'Unknown'}</span></td>
                     <td>${result.issues || 'N/A'}</td>
                 </tr>
@@ -2562,6 +2873,14 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
         }).join('');
         
         console.log(`📋 QA-QC table populated with ${qaqcResults.length} rows`);
+        
+        // IMMEDIATE comment restoration after QA-QC table creation
+        console.log('🔴 IMMEDIATE COMMENT RESTORATION AFTER TABLE CREATION');
+        setTimeout(() => {
+            const immediateRestored = restoreAllComments();
+            console.log(`🔴 Immediately restored ${immediateRestored} comments`);
+        }, 10);
+        
     } else {
         console.log('❌ QA-QC table update failed:', {
             hasTable: !!qaqcTable,
@@ -2569,37 +2888,71 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
         });
     }
     
-    // Ensure comment inputs are interactive
+    // Multiple aggressive restoration attempts
     setTimeout(() => {
+        console.log('🔴 FIRST RESTORATION ATTEMPT (50ms)');
+        restoreAllComments();
+        setupCommentInputs();
+    }, 50);
+    
+    setTimeout(() => {
+        console.log('🔴 SECOND RESTORATION ATTEMPT (100ms)');
+        restoreAllComments();
         setupCommentInputs();
     }, 100);
+    
+    setTimeout(() => {
+        console.log('🔴 FINAL RESTORATION ATTEMPT (200ms)');
+        const finalRestored = restoreAllComments();
+        setupCommentInputs();
+        
+        // Final verification
+        setTimeout(() => {
+            const verification = verifyCommentRestoration();
+            console.log('🔴 FINAL VERIFICATION:', verification);
+        }, 50);
+    }, 200);
 }
 
 // Setup comment inputs to ensure they're interactive
 function setupCommentInputs() {
     const commentInputs = document.querySelectorAll('.comment-input');
-    console.log(`Setting up ${commentInputs.length} comment inputs`);
+    console.log(`💬 Setting up ${commentInputs.length} comment inputs`);
+    console.log(`💾 Current commentsData:`, commentsData);
     
     commentInputs.forEach((input, index) => {
         // Ensure the input is focusable and interactive
         input.tabIndex = 0;
         input.style.pointerEvents = 'auto';
         input.style.zIndex = '10';
+        input.readOnly = false; // Ensure not readonly
+        input.disabled = false; // Ensure not disabled
         
-        // Get the file name from the row
-        const row = input.closest('tr');
-        const fileNameCell = row?.cells[2]; // File Name is the 3rd column (index 2)
-        const fileName = fileNameCell?.textContent?.trim();
+        // Get the file name from the data attribute or the row
+        let fileName = input.getAttribute('data-file-name');
+        if (!fileName) {
+            const row = input.closest('tr');
+            const fileNameCell = row?.cells[2]; // File Name is the 3rd column (index 2)
+            fileName = fileNameCell?.textContent?.trim();
+        }
         
         if (fileName) {
-            // Restore any existing comment
+            console.log(`💬 Setting up comment input ${index} for file: "${fileName}"`);
+            console.log(`💬 Current input value: "${input.value}"`);
+            console.log(`💬 Stored comment value: "${commentsData[fileName] || 'none'}"`);
+            
+            // FORCE restore comment if we have stored data but input is empty or different
             if (commentsData[fileName]) {
-                input.value = commentsData[fileName];
+                const storedComment = commentsData[fileName];
+                if (input.value !== storedComment) {
+                    console.log(`💬 FORCING restore comment for ${fileName}: "${storedComment}"`);
+                    input.value = storedComment;
+                }
             }
             
             // Add event listeners for better interaction
             input.addEventListener('focus', function(e) {
-                console.log(`Comment input ${index} focused for file: ${fileName}`);
+                console.log(`💬 Comment input ${index} focused for file: ${fileName}`);
                 e.stopPropagation();
                 this.style.borderColor = '#3b82f6';
                 this.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
@@ -2613,21 +2966,21 @@ function setupCommentInputs() {
             });
             
             input.addEventListener('input', function() {
-                console.log(`Comment input ${index} changed for ${fileName}:`, this.value);
-                // Store the comment
+                console.log(`💬 Comment input ${index} changed for ${fileName}:`, this.value);
+                // Store the comment immediately
                 commentsData[fileName] = this.value.trim();
                 
                 // Trigger re-evaluation of title block if comment added/removed
                 if (this.value.trim()) {
-                    console.log(`Comment added for ${fileName}, will fail title block`);
+                    console.log(`💬 Comment added for ${fileName}, will fail title block`);
                 } else {
-                    console.log(`Comment removed for ${fileName}, will re-evaluate title block`);
+                    console.log(`💬 Comment removed for ${fileName}, will re-evaluate title block`);
                 }
             });
             
             // Prevent row click from interfering
             input.addEventListener('click', function(e) {
-                console.log(`Comment input ${index} clicked for file: ${fileName}`);
+                console.log(`💬 Comment input ${index} clicked for file: ${fileName}`);
                 e.stopPropagation();
                 this.focus();
             });
@@ -2635,6 +2988,8 @@ function setupCommentInputs() {
             input.addEventListener('mousedown', function(e) {
                 e.stopPropagation();
             });
+        } else {
+            console.warn(`💬 Could not determine file name for comment input ${index}`);
         }
     });
 }
