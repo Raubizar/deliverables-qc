@@ -587,45 +587,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 qc: { approved: qcApproved, approvedWithComments: qcApprovedWithComments, toReview: qcToBeReviewed }
             });
             
-            // Update charts with real data
-            if (window.deliveredChart) {
-                // Always update, even with zero values, but ensure at least one value for visibility
-                const deliveredData = (deliveredCount === 0 && notDeliveredCount === 0) 
-                    ? [0, 1] // Show placeholder when no data
-                    : [deliveredCount, notDeliveredCount];
-                window.deliveredChart.data.datasets[0].data = deliveredData;
-                window.deliveredChart.update();
-                console.log('✅ Delivered chart updated with real data:', deliveredData);
-            }
+            // Calculate percentages for SVG donut charts
+            const deliveredTotal = deliveredCount + notDeliveredCount;
+            const deliveredPercent = deliveredTotal > 0 ? Math.round((deliveredCount / deliveredTotal) * 100) : 0;
             
-            if (window.namingComplianceChart) {
-                const namingData = (namingCompliant === 0 && namingNonCompliant === 0) 
-                    ? [0, 1] // Show placeholder when no data
-                    : [namingCompliant, namingNonCompliant];
-                window.namingComplianceChart.data.datasets[0].data = namingData;
-                window.namingComplianceChart.update();
-                console.log('✅ Naming chart updated with real data:', namingData);
-            }
+            const namingTotal = namingCompliant + namingNonCompliant;
+            const namingPercent = namingTotal > 0 ? Math.round((namingCompliant / namingTotal) * 100) : 0;
             
-            if (window.titleBlockComplianceChart) {
-                const titleBlockData = (titleBlockCompliant === 0 && titleBlockNonCompliant === 0 && titleBlockNotChecked === 0) 
-                    ? [0, 0, 1] // Show placeholder when no data
-                    : [titleBlockCompliant, titleBlockNonCompliant, titleBlockNotChecked];
-                window.titleBlockComplianceChart.data.datasets[0].data = titleBlockData;
-                window.titleBlockComplianceChart.update();
-                console.log('✅ Title block chart updated with real data:', titleBlockData);
-            }
+            const titleBlockTotal = titleBlockCompliant + titleBlockNonCompliant + titleBlockNotChecked;
+            const titleBlockPercent = titleBlockTotal > 0 ? Math.round((titleBlockCompliant / titleBlockTotal) * 100) : 0;
             
-            if (window.overallQCChart) {
-                const qcData = (qcApproved === 0 && qcApprovedWithComments === 0 && qcToBeReviewed === 0) 
-                    ? [0, 0, 1] // Show placeholder when no data
-                    : [qcApproved, qcApprovedWithComments, qcToBeReviewed];
-                window.overallQCChart.data.datasets[0].data = qcData;
-                window.overallQCChart.update();
-                console.log('✅ Overall QC chart updated with real data:', qcData);
-            }
+            const qcTotal = qcApproved + qcApprovedWithComments + qcToBeReviewed;
+            const qcPercent = qcTotal > 0 ? Math.round((qcApproved / qcTotal) * 100) : 0;
             
-            return 'Charts updated with real table data!';
+            console.log('📊 Calculated percentages:', {
+                delivered: deliveredPercent + '%',
+                naming: namingPercent + '%',
+                titleBlock: titleBlockPercent + '%',
+                qc: qcPercent + '%'
+            });
+            
+            // Update SVG donut charts instead of Chart.js charts
+            updateDonutChart('deliveredChart', deliveredPercent);
+            updateDonutChart('namingComplianceChart', namingPercent);
+            updateDonutChart('titleBlockComplianceChart', titleBlockPercent);
+            updateDonutChart('overallQCChart', qcPercent);
+            
+            console.log('✅ All SVG donut charts updated with real table data');
+            
+            return 'SVG donut charts updated with real table data!';
         };
         
         // Removed automatic sample data loading - data will load when files are uploaded
@@ -3972,7 +3962,7 @@ function createSVGDonut(canvasId, percentage, color) {
 }
 
 function createDonutSVG(percentage, color) {
-    const radius = 36;
+    const radius = 34;
     const strokeWidth = 12;
     const normalizedRadius = radius - strokeWidth * 0.5;
     const circumference = normalizedRadius * 2 * Math.PI;
@@ -3980,8 +3970,8 @@ function createDonutSVG(percentage, color) {
     const strokeDashoffset = circumference - (percentage / 100) * circumference;
     
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('width', '80');
-    svg.setAttribute('height', '80');
+    svg.setAttribute('width', '86');
+    svg.setAttribute('height', '86');
     
     // Background circle
     const bgCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -3989,8 +3979,8 @@ function createDonutSVG(percentage, color) {
     bgCircle.setAttribute('fill', 'transparent');
     bgCircle.setAttribute('stroke-width', strokeWidth);
     bgCircle.setAttribute('r', normalizedRadius);
-    bgCircle.setAttribute('cx', '40');
-    bgCircle.setAttribute('cy', '40');
+    bgCircle.setAttribute('cx', '43');
+    bgCircle.setAttribute('cy', '43');
     
     // Progress circle
     const progressCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -4001,8 +3991,8 @@ function createDonutSVG(percentage, color) {
     progressCircle.setAttribute('stroke-dashoffset', strokeDashoffset);
     progressCircle.setAttribute('stroke-linecap', 'round');
     progressCircle.setAttribute('r', normalizedRadius);
-    progressCircle.setAttribute('cx', '40');
-    progressCircle.setAttribute('cy', '40');
+    progressCircle.setAttribute('cx', '43');
+    progressCircle.setAttribute('cy', '43');
     
     svg.appendChild(bgCircle);
     svg.appendChild(progressCircle);
@@ -4026,7 +4016,7 @@ function updateDonutChart(canvasId, percentage) {
     // Update the SVG progress circle
     const progressCircle = svg.querySelector('circle:last-child');
     if (progressCircle) {
-        const radius = 36;
+        const radius = 34;
         const strokeWidth = 12;
         const normalizedRadius = radius - strokeWidth * 0.5;
         const circumference = normalizedRadius * 2 * Math.PI;
