@@ -379,6 +379,255 @@ document.addEventListener('DOMContentLoaded', function() {
         // Setup initial comment inputs
         setupCommentInputs();
         
+        // Add diagnostic function to window for debugging
+        window.runChartDiagnostics = function() {
+            console.log('=== CHART DIAGNOSTICS ===');
+            
+            // Check Chart.js
+            console.log('Chart.js loaded:', typeof Chart !== 'undefined');
+            if (typeof Chart !== 'undefined') {
+                console.log('Chart.js version:', Chart.version);
+            }
+            
+            // Check canvas elements
+            const canvasElements = {
+                delivered: document.getElementById('deliveredChart'),
+                naming: document.getElementById('namingComplianceChart'),
+                titleBlock: document.getElementById('titleBlockComplianceChart'),
+                overall: document.getElementById('overallQCChart')
+            };
+            
+            console.log('Canvas elements found:', {
+                delivered: !!canvasElements.delivered,
+                naming: !!canvasElements.naming,
+                titleBlock: !!canvasElements.titleBlock,
+                overall: !!canvasElements.overall
+            });
+            
+            // Check chart instances
+            const chartInstances = {
+                delivered: window.deliveredChart,
+                naming: window.namingComplianceChart,
+                titleBlock: window.titleBlockComplianceChart,
+                overall: window.overallQCChart
+            };
+            
+            console.log('Chart instances created:', {
+                delivered: !!chartInstances.delivered,
+                naming: !!chartInstances.naming,
+                titleBlock: !!chartInstances.titleBlock,
+                overall: !!chartInstances.overall
+            });
+            
+            // Check chart data
+            Object.keys(chartInstances).forEach(key => {
+                if (chartInstances[key]) {
+                    console.log(`${key} chart data:`, chartInstances[key].data.datasets[0].data);
+                }
+            });
+            
+            // Check CSS styles
+            Object.keys(canvasElements).forEach(key => {
+                if (canvasElements[key]) {
+                    const styles = window.getComputedStyle(canvasElements[key]);
+                    console.log(`${key} canvas styles:`, {
+                        width: styles.width,
+                        height: styles.height,
+                        display: styles.display,
+                        visibility: styles.visibility
+                    });
+                }
+            });
+            
+            // Check container styles
+            const containers = document.querySelectorAll('.chart-container');
+            console.log('Chart containers found:', containers.length);
+            containers.forEach((container, index) => {
+                const styles = window.getComputedStyle(container);
+                console.log(`Container ${index} styles:`, {
+                    width: styles.width,
+                    height: styles.height,
+                    display: styles.display
+                });
+            });
+            
+            return 'Diagnostic complete - check console for details';
+        };
+        
+        // Add test function to simulate real data
+        window.testChartsWithSampleData = function() {
+            console.log('🧪 Testing charts with sample data...');
+            
+            // Test with sample data that should show visible segments
+            if (window.deliveredChart) {
+                window.deliveredChart.data.datasets[0].data = [7, 3];
+                window.deliveredChart.update();
+                console.log('✅ Delivered chart updated with [7, 3]');
+            }
+            
+            if (window.namingComplianceChart) {
+                window.namingComplianceChart.data.datasets[0].data = [8, 2];
+                window.namingComplianceChart.update();
+                console.log('✅ Naming chart updated with [8, 2]');
+            }
+            
+            if (window.titleBlockComplianceChart) {
+                window.titleBlockComplianceChart.data.datasets[0].data = [6, 2, 2];
+                window.titleBlockComplianceChart.update();
+                console.log('✅ Title block chart updated with [6, 2, 2]');
+            }
+            
+            if (window.overallQCChart) {
+                window.overallQCChart.data.datasets[0].data = [5, 3, 2];
+                window.overallQCChart.update();
+                console.log('✅ Overall QC chart updated with [5, 3, 2]');
+            }
+            
+            return 'Sample data applied - check charts now!';
+        };
+        
+        // Add function to update charts with real table data
+        window.updateChartsFromTableData = function() {
+            console.log('📊 === UPDATING CHARTS FROM ACTUAL TABLE DATA ===');
+            
+            // Get data from the actual tables
+            const drawingTable = document.getElementById('drawingListResults');
+            const namingTable = document.getElementById('namingResults');
+            const qaqcTable = document.getElementById('qaqcResults');
+            
+            if (!drawingTable || !namingTable || !qaqcTable) {
+                console.warn('⚠️ One or more tables not found');
+                return 'Tables not found';
+            }
+            
+            // Count statuses from Drawing List table
+            const drawingRows = Array.from(drawingTable.querySelectorAll('tr'));
+            let deliveredCount = 0;
+            let notDeliveredCount = 0;
+            
+            console.log(`📋 Drawing List table has ${drawingRows.length} rows`);
+            
+            drawingRows.forEach((row, index) => {
+                const statusCell = row.querySelector('.status-badge');
+                if (statusCell) {
+                    const status = statusCell.textContent.trim().toLowerCase();
+                    console.log(`  Row ${index}: status="${status}"`);
+                    // Updated to match the actual status text from the table
+                    if (status.includes('done') || status.includes('delivered') || status.includes('found')) {
+                        deliveredCount++;
+                    } else if (status.includes('to do') || status.includes('not found') || status.includes('missing') || status.includes('todo')) {
+                        notDeliveredCount++;
+                    }
+                }
+            });
+            
+            // Count statuses from Naming table
+            const namingRows = Array.from(namingTable.querySelectorAll('tr'));
+            let namingCompliant = 0;
+            let namingNonCompliant = 0;
+            
+            console.log(`📋 Naming table has ${namingRows.length} rows`);
+            
+            namingRows.forEach((row, index) => {
+                const statusCell = row.querySelector('.status-badge');
+                if (statusCell) {
+                    const status = statusCell.textContent.trim().toLowerCase();
+                    console.log(`  Row ${index}: status="${status}"`);
+                    if (status.includes('compliant') && !status.includes('non-compliant')) {
+                        namingCompliant++;
+                    } else if (status.includes('non-compliant')) {
+                        namingNonCompliant++;
+                    }
+                }
+            });
+            
+            // Count statuses from QA-QC table  
+            const qaqcRows = Array.from(qaqcTable.querySelectorAll('tr'));
+            let titleBlockCompliant = 0;
+            let titleBlockNonCompliant = 0;
+            let titleBlockNotChecked = 0;
+            let qcApproved = 0;
+            let qcApprovedWithComments = 0;
+            let qcToBeReviewed = 0;
+            
+            console.log(`📋 QA-QC table has ${qaqcRows.length} rows`);
+            
+            qaqcRows.forEach((row, index) => {
+                const statusCells = row.querySelectorAll('.status-badge');
+                console.log(`  Row ${index}: found ${statusCells.length} status badges`);
+                
+                if (statusCells.length >= 2) {
+                    // Title block status (usually 9th column)
+                    const titleBlockStatus = statusCells[0]?.textContent.trim().toLowerCase();
+                    if (titleBlockStatus?.includes('compliant') && !titleBlockStatus.includes('non-compliant')) {
+                        titleBlockCompliant++;
+                    } else if (titleBlockStatus?.includes('non-compliant')) {
+                        titleBlockNonCompliant++;
+                    } else {
+                        titleBlockNotChecked++;
+                    }
+                    
+                    // QC compliance status (usually last status column)
+                    const qcStatus = statusCells[statusCells.length - 1]?.textContent.trim().toLowerCase();
+                    console.log(`    QC Status: "${qcStatus}"`);
+                    if (qcStatus?.includes('approved') && !qcStatus.includes('with comments')) {
+                        qcApproved++;
+                    } else if (qcStatus?.includes('approved with comments')) {
+                        qcApprovedWithComments++;
+                    } else {
+                        qcToBeReviewed++;
+                    }
+                }
+            });
+            
+            console.log('📊 Extracted data from tables:', {
+                delivered: { delivered: deliveredCount, notDelivered: notDeliveredCount },
+                naming: { compliant: namingCompliant, nonCompliant: namingNonCompliant },
+                titleBlock: { compliant: titleBlockCompliant, nonCompliant: titleBlockNonCompliant, notChecked: titleBlockNotChecked },
+                qc: { approved: qcApproved, approvedWithComments: qcApprovedWithComments, toReview: qcToBeReviewed }
+            });
+            
+            // Update charts with real data
+            if (window.deliveredChart) {
+                // Always update, even with zero values, but ensure at least one value for visibility
+                const deliveredData = (deliveredCount === 0 && notDeliveredCount === 0) 
+                    ? [0, 1] // Show placeholder when no data
+                    : [deliveredCount, notDeliveredCount];
+                window.deliveredChart.data.datasets[0].data = deliveredData;
+                window.deliveredChart.update();
+                console.log('✅ Delivered chart updated with real data:', deliveredData);
+            }
+            
+            if (window.namingComplianceChart) {
+                const namingData = (namingCompliant === 0 && namingNonCompliant === 0) 
+                    ? [0, 1] // Show placeholder when no data
+                    : [namingCompliant, namingNonCompliant];
+                window.namingComplianceChart.data.datasets[0].data = namingData;
+                window.namingComplianceChart.update();
+                console.log('✅ Naming chart updated with real data:', namingData);
+            }
+            
+            if (window.titleBlockComplianceChart) {
+                const titleBlockData = (titleBlockCompliant === 0 && titleBlockNonCompliant === 0 && titleBlockNotChecked === 0) 
+                    ? [0, 0, 1] // Show placeholder when no data
+                    : [titleBlockCompliant, titleBlockNonCompliant, titleBlockNotChecked];
+                window.titleBlockComplianceChart.data.datasets[0].data = titleBlockData;
+                window.titleBlockComplianceChart.update();
+                console.log('✅ Title block chart updated with real data:', titleBlockData);
+            }
+            
+            if (window.overallQCChart) {
+                const qcData = (qcApproved === 0 && qcApprovedWithComments === 0 && qcToBeReviewed === 0) 
+                    ? [0, 0, 1] // Show placeholder when no data
+                    : [qcApproved, qcApprovedWithComments, qcToBeReviewed];
+                window.overallQCChart.data.datasets[0].data = qcData;
+                window.overallQCChart.update();
+                console.log('✅ Overall QC chart updated with real data:', qcData);
+            }
+            
+            return 'Charts updated with real table data!';
+        };
+        
         // Removed automatic sample data loading - data will load when files are uploaded
         
         console.log('Application initialized successfully');
@@ -387,6 +636,122 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('  - debugTables() - Check table population status');
         console.log('  - triggerTablePopulation() - Manually populate tables');
         console.log('  - validateTablePopulation() - Validate current table state');
+        console.log('  - runChartDiagnostics() - Test chart rendering');
+        console.log('  - testChartsWithSampleData() - Apply sample data to charts');
+        console.log('  - updateChartsFromTableData() - Update charts with real table data');
+        console.log('  - generateTestData() - Generate test data for debugging');
+        console.log('  - forceChartUpdate() - Force immediate chart update from table data');
+        
+        // Add immediate chart update trigger
+        window.forceChartUpdate = function() {
+            console.log('🚀 === FORCE CHART UPDATE TRIGGERED ===');
+            
+            // First try the table data method
+            if (window.updateChartsFromTableData) {
+                const result = window.updateChartsFromTableData();
+                console.log('Chart update result:', result);
+            }
+            
+            // Also show current chart data for verification
+            const charts = ['deliveredChart', 'namingComplianceChart', 'titleBlockComplianceChart', 'overallQCChart'];
+            charts.forEach(chartName => {
+                if (window[chartName]) {
+                    const data = window[chartName].data.datasets[0].data;
+                    console.log(`${chartName} current data: [${data.join(', ')}]`);
+                }
+            });
+            
+            return 'Force update complete - check console and charts';
+        };
+        
+        // Add comprehensive debugging function
+        window.debugChartDataFlow = function() {
+            console.log('🔍 === COMPREHENSIVE CHART DATA FLOW DEBUG ===');
+            
+            // Check raw data
+            console.log('📊 Raw data sources:');
+            console.log('  - uploadedFiles:', uploadedFiles ? uploadedFiles.length : 'undefined');
+            console.log('  - fileResultsFromFolder:', fileResultsFromFolder ? fileResultsFromFolder.length : 'undefined');
+            console.log('  - titleBlockData:', titleBlockData ? titleBlockData.length : 'undefined');
+            console.log('  - fileNamesFromExcel:', fileNamesFromExcel ? fileNamesFromExcel.length : 'undefined');
+            
+            // Check table data
+            const tables = {
+                drawing: document.getElementById('drawingListResults'),
+                naming: document.getElementById('namingResults'),
+                qaqc: document.getElementById('qaqcResults')
+            };
+            
+            console.log('📋 Table status:');
+            Object.keys(tables).forEach(key => {
+                const table = tables[key];
+                if (table) {
+                    const rows = Array.from(table.querySelectorAll('tr'));
+                    const statusCells = table.querySelectorAll('.status-badge');
+                    console.log(`  - ${key}: ${rows.length} rows, ${statusCells.length} status badges`);
+                    
+                    // Sample status values
+                    const sampleStatuses = Array.from(statusCells).slice(0, 3).map(cell => cell.textContent.trim());
+                    if (sampleStatuses.length > 0) {
+                        console.log(`    Sample statuses: ${sampleStatuses.join(', ')}`);
+                    }
+                } else {
+                    console.log(`  - ${key}: table not found`);
+                }
+            });
+            
+            // Check chart instances
+            const charts = {
+                delivered: window.deliveredChart,
+                naming: window.namingComplianceChart,
+                titleBlock: window.titleBlockComplianceChart,
+                overall: window.overallQCChart
+            };
+            
+            console.log('📊 Chart instances:');
+            Object.keys(charts).forEach(key => {
+                const chart = charts[key];
+                if (chart) {
+                    const data = chart.data.datasets[0].data;
+                    console.log(`  - ${key}: [${data.join(', ')}]`);
+                } else {
+                    console.log(`  - ${key}: chart not found`);
+                }
+            });
+            
+            // Test chart update function
+            console.log('🧪 Testing chart update function...');
+            if (window.updateChartsFromTableData) {
+                const result = window.updateChartsFromTableData();
+                console.log('Chart update result:', result);
+            }
+            
+            return 'Debug complete - check console output above';
+        };
+        
+        // Add function to check summary metrics display
+        window.debugSummaryMetrics = function() {
+            console.log('📊 === SUMMARY METRICS DEBUG ===');
+            
+            const metrics = [
+                'deliveredPercent', 'deliveredCount', 'deliveredTotal',
+                'namingCompliancePercent', 'namingCompliantCount', 'namingTotalCount',
+                'titleBlockCompliancePercent', 'titleBlockCompliantCount', 'titleBlockTotalCount',
+                'overallQCPercent', 'qcApprovedCount', 'qcTotalCount'
+            ];
+            
+            console.log('🔢 Current metric values:');
+            metrics.forEach(metricId => {
+                const element = document.getElementById(metricId);
+                if (element) {
+                    console.log(`  - ${metricId}: "${element.textContent}"`);
+                } else {
+                    console.log(`  - ${metricId}: element not found`);
+                }
+            });
+            
+            return 'Summary metrics debug complete';
+        };
     } catch (error) {
         console.error('Error initializing application:', error);
     }
@@ -2384,7 +2749,22 @@ async function runAllChecks() {
         console.log('🎨 Updating UI with results...');
         updateSummaryMetrics(drawingListResults, namingResults, qaqcResults);
         updateResultsTables(drawingListResults, namingResults, qaqcResults);
-        updateCharts(drawingListResults, namingResults, qaqcResults);
+        
+        // ADDITIONAL: Force chart update from table data as backup
+        setTimeout(() => {
+            console.log('📊 Running backup chart update from table data...');
+            if (window.updateChartsFromTableData) {
+                window.updateChartsFromTableData();
+            }
+        }, 500);
+        
+        // ADDITIONAL: Force another update after longer delay to ensure table is fully populated
+        setTimeout(() => {
+            console.log('📊 Running final chart update from table data...');
+            if (window.updateChartsFromTableData) {
+                window.updateChartsFromTableData();
+            }
+        }, 1000);
         
         // STEP 2: RESTORE COMMENTS AFTER UI UPDATE
         setTimeout(() => {
@@ -3056,32 +3436,233 @@ function monitorComments() {
 
 // UI Update Functions
 function updateSummaryMetrics(drawingResults, namingResults, qaqcResults) {
-    // Handle cases where data might be missing or partial
-    const totalFiles = fileResultsFromFolder ? fileResultsFromFolder.length : 
-                      (drawingResults && drawingResults.length > 0 ? drawingResults.length : 0);
+    console.log('📊 === UPDATING SUMMARY METRICS ===');
+    console.log('Drawing results:', drawingResults?.length || 0, drawingResults);
+    console.log('Naming results:', namingResults?.length || 0, namingResults);
+    console.log('QA-QC results:', qaqcResults?.length || 0, qaqcResults);
     
-    const missingFiles = drawingResults ? 
-        drawingResults.filter(r => r.status === 'To Do' || r.status === 'Not verified').length : 0;
+    // 1. DELIVERED METRICS
+    let deliveredTotal = 0;
+    let deliveredDone = 0;
+    let deliveredToDo = 0;
     
-    const compliantFiles = namingResults ? 
-        namingResults.filter(r => r.status === 'Ok' || r.status === 'Compliant').length : 0;
+    if (drawingResults && drawingResults.length > 0) {
+        deliveredTotal = drawingResults.length;
+        // Updated status mapping to handle real table statuses
+        deliveredDone = drawingResults.filter(r => 
+            r.status === 'Done' || 
+            r.status === 'Delivered' || 
+            r.status === 'Found' ||
+            (r.status && r.status.toLowerCase().includes('delivered'))
+        ).length;
+        deliveredToDo = drawingResults.filter(r => 
+            r.status === 'To Do' || 
+            r.status === 'Not verified' || 
+            r.status === 'Missing' ||
+            r.status === 'Not Found' ||
+            (r.status && (r.status.toLowerCase().includes('missing') || r.status.toLowerCase().includes('not found')))
+        ).length;
+        console.log('📊 Drawing status breakdown:', {
+            total: deliveredTotal,
+            done: deliveredDone,
+            toDo: deliveredToDo,
+            statuses: drawingResults.map(r => r.status)
+        });
+    }
     
-    const overallScore = totalFiles > 0 ? Math.round(((compliantFiles / totalFiles) * 100)) : 0;
+    const deliveredPercent = deliveredTotal > 0 ? Math.round((deliveredDone / deliveredTotal) * 100) : 0;
     
-    // Update UI elements safely
-    const totalFilesEl = document.getElementById('totalFiles');
-    const missingFilesEl = document.getElementById('missingFiles');
-    const compliantFilesEl = document.getElementById('compliantFiles');
-    const overallScoreEl = document.getElementById('overallScore');
+    // 2. NAMING COMPLIANCE METRICS
+    let namingTotal = 0;
+    let namingCompliant = 0;
+    let namingNonCompliant = 0;
     
-    if (totalFilesEl) totalFilesEl.textContent = totalFiles;
-    if (missingFilesEl) missingFilesEl.textContent = missingFiles;
-    if (compliantFilesEl) compliantFilesEl.textContent = compliantFiles;
-    if (overallScoreEl) overallScoreEl.textContent = `${overallScore}%`;
+    if (namingResults && namingResults.length > 0) {
+        namingTotal = namingResults.length;
+        // Updated status mapping to handle real table statuses
+        namingCompliant = namingResults.filter(r => 
+            r.status === 'Ok' || 
+            r.status === 'Compliant' ||
+            (r.status && r.status.toLowerCase().includes('compliant') && !r.status.toLowerCase().includes('non-compliant'))
+        ).length;
+        namingNonCompliant = namingResults.filter(r => 
+            r.status === 'Non-compliant' ||
+            r.status === 'Invalid' ||
+            (r.status && r.status.toLowerCase().includes('non-compliant'))
+        ).length;
+        console.log('📊 Naming status breakdown:', {
+            total: namingTotal,
+            compliant: namingCompliant,
+            nonCompliant: namingNonCompliant,
+            statuses: namingResults.map(r => r.status)
+        });
+    }
     
-    // Update metric card colors
-    updateMetricColor('missingFiles', missingFiles === 0 ? 'success' : 'error');
-    updateMetricColor('overallScore', overallScore >= 80 ? 'success' : overallScore >= 60 ? 'warning' : 'error');
+    const namingPercent = namingTotal > 0 ? Math.round((namingCompliant / namingTotal) * 100) : 0;
+    
+    // 3. TITLE BLOCK COMPLIANCE METRICS
+    let titleBlockTotal = 0;
+    let titleBlockCompliant = 0;
+    let titleBlockNonCompliant = 0;
+    let titleBlockNotChecked = 0;
+    
+    if (qaqcResults && qaqcResults.length > 0) {
+        titleBlockTotal = qaqcResults.length;
+        // Updated status mapping to handle real table statuses
+        titleBlockCompliant = qaqcResults.filter(r => 
+            r.titleBlockStatus === 'Compliant' ||
+            (r.titleBlockStatus && r.titleBlockStatus.toLowerCase().includes('compliant') && !r.titleBlockStatus.toLowerCase().includes('non-compliant'))
+        ).length;
+        titleBlockNonCompliant = qaqcResults.filter(r => 
+            r.titleBlockStatus === 'Non-compliant' ||
+            (r.titleBlockStatus && r.titleBlockStatus.toLowerCase().includes('non-compliant'))
+        ).length;
+        titleBlockNotChecked = qaqcResults.filter(r => 
+            r.titleBlockStatus === 'Not verified' ||
+            r.titleBlockStatus === 'Preview' ||
+            !r.titleBlockStatus ||
+            (r.titleBlockStatus && (r.titleBlockStatus.toLowerCase().includes('not verified') || r.titleBlockStatus.toLowerCase().includes('preview')))
+        ).length;
+        console.log('📊 Title block status breakdown:', {
+            total: titleBlockTotal,
+            compliant: titleBlockCompliant,
+            nonCompliant: titleBlockNonCompliant,
+            notChecked: titleBlockNotChecked,
+            statuses: qaqcResults.map(r => r.titleBlockStatus)
+        });
+    }
+    
+    const titleBlockPercent = titleBlockTotal > 0 ? Math.round((titleBlockCompliant / titleBlockTotal) * 100) : 0;
+    
+    // 4. OVERALL QC SCORE METRICS
+    let qcTotal = 0;
+    let qcApproved = 0;
+    let qcApprovedWithComments = 0;
+    let qcToBeReviewed = 0;
+    
+    if (qaqcResults && qaqcResults.length > 0) {
+        qcTotal = qaqcResults.length;
+        // Updated status mapping to handle real table statuses
+        qcApproved = qaqcResults.filter(r => 
+            r.complianceStatus === 'Approved' ||
+            (r.complianceStatus && r.complianceStatus.toLowerCase().includes('approved') && !r.complianceStatus.toLowerCase().includes('with comments'))
+        ).length;
+        qcApprovedWithComments = qaqcResults.filter(r => 
+            r.complianceStatus === 'Approved with comments' ||
+            (r.complianceStatus && r.complianceStatus.toLowerCase().includes('approved with comments'))
+        ).length;
+        qcToBeReviewed = qaqcResults.filter(r => 
+            r.complianceStatus === 'Not approved' || 
+            r.complianceStatus === 'Not verified' ||
+            r.complianceStatus === 'Preview' ||
+            !r.complianceStatus ||
+            (r.complianceStatus && (r.complianceStatus.toLowerCase().includes('not approved') || r.complianceStatus.toLowerCase().includes('not verified') || r.complianceStatus.toLowerCase().includes('preview')))
+        ).length;
+        console.log('📊 QC compliance status breakdown:', {
+            total: qcTotal,
+            approved: qcApproved,
+            approvedWithComments: qcApprovedWithComments,
+            toBeReviewed: qcToBeReviewed,
+            statuses: qaqcResults.map(r => r.complianceStatus)
+        });
+    }
+    
+    const qcPercent = qcTotal > 0 ? Math.round((qcApproved / qcTotal) * 100) : 0;
+    
+    console.log('📊 Final calculated metrics:', {
+        delivered: { total: deliveredTotal, done: deliveredDone, percent: deliveredPercent },
+        naming: { total: namingTotal, compliant: namingCompliant, percent: namingPercent },
+        titleBlock: { total: titleBlockTotal, compliant: titleBlockCompliant, percent: titleBlockPercent },
+        qc: { total: qcTotal, approved: qcApproved, percent: qcPercent }
+    });
+    
+    // UPDATE UI ELEMENTS
+    
+    // Delivered
+    updateElement('deliveredPercent', `${deliveredPercent}%`);
+    updateElement('deliveredCount', deliveredDone);
+    updateElement('deliveredTotal', deliveredTotal);
+    
+    // Naming Compliance
+    updateElement('namingCompliancePercent', `${namingPercent}%`);
+    updateElement('namingCompliantCount', namingCompliant);
+    updateElement('namingTotalCount', namingTotal);
+    
+    // Title Block Compliance
+    updateElement('titleBlockCompliancePercent', `${titleBlockPercent}%`);
+    updateElement('titleBlockCompliantCount', titleBlockCompliant);
+    updateElement('titleBlockTotalCount', titleBlockTotal);
+    
+    // Overall QC Score
+    updateElement('overallQCPercent', `${qcPercent}%`);
+    updateElement('qcApprovedCount', qcApproved);
+    updateElement('qcTotalCount', qcTotal);
+    
+    console.log('📊 UI elements updated, now updating charts...');
+    
+    // UPDATE CHARTS
+    
+    // Delivered Chart
+    if (window.deliveredChart) {
+        console.log('📊 Updating delivered chart:', [deliveredDone, deliveredToDo]);
+        // Ensure at least one segment is visible for empty data
+        const deliveredData = (deliveredDone + deliveredToDo === 0) 
+            ? [1, 0] // Show placeholder when no data
+            : [deliveredDone, deliveredToDo];
+        window.deliveredChart.data.datasets[0].data = deliveredData;
+        window.deliveredChart.update();
+    } else {
+        console.warn('📊 Delivered chart not found');
+    }
+    
+    // Naming Compliance Chart
+    if (window.namingComplianceChart) {
+        console.log('📊 Updating naming chart:', [namingCompliant, namingNonCompliant]);
+        // Ensure at least one segment is visible for empty data
+        const namingData = (namingCompliant + namingNonCompliant === 0) 
+            ? [1, 0] // Show placeholder when no data
+            : [namingCompliant, namingNonCompliant];
+        window.namingComplianceChart.data.datasets[0].data = namingData;
+        window.namingComplianceChart.update();
+    } else {
+        console.warn('📊 Naming compliance chart not found');
+    }
+    
+    // Title Block Compliance Chart
+    if (window.titleBlockComplianceChart) {
+        console.log('📊 Updating title block chart:', [titleBlockCompliant, titleBlockNonCompliant, titleBlockNotChecked]);
+        // Ensure at least one segment is visible for empty data
+        const titleBlockData = (titleBlockCompliant + titleBlockNonCompliant + titleBlockNotChecked === 0) 
+            ? [1, 0, 0] // Show placeholder when no data
+            : [titleBlockCompliant, titleBlockNonCompliant, titleBlockNotChecked];
+        window.titleBlockComplianceChart.data.datasets[0].data = titleBlockData;
+        window.titleBlockComplianceChart.update();
+    } else {
+        console.warn('📊 Title block compliance chart not found');
+    }
+    
+    // Overall QC Chart
+    if (window.overallQCChart) {
+        console.log('📊 Updating overall QC chart:', [qcApproved, qcApprovedWithComments, qcToBeReviewed]);
+        // Ensure at least one segment is visible for empty data
+        const qcData = (qcApproved + qcApprovedWithComments + qcToBeReviewed === 0) 
+            ? [1, 0, 0] // Show placeholder when no data
+            : [qcApproved, qcApprovedWithComments, qcToBeReviewed];
+        window.overallQCChart.data.datasets[0].data = qcData;
+        window.overallQCChart.update();
+    } else {
+        console.warn('📊 Overall QC chart not found');
+    }
+    
+    console.log('📊 Summary metrics update complete!');
+}
+
+// Helper function to safely update elements
+function updateElement(elementId, value) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = value;
+    }
 }
 
 function updateMetricColor(elementId, colorClass) {
@@ -3127,7 +3708,7 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
             <tr>
                 <td>${result.folderPath || 'N/A'}</td>
                 <td>${result.highlightedFileName || result.fileName || 'N/A'}</td>
-                <td><span class="status-badge ${result.status === 'Ok' ? 'success' : result.status === 'OK' ? 'success' : result.status === 'WARNING' ? 'warning' : 'error'}">${result.status || 'Unknown'}</span></td>
+                <td><span class="status-badge ${getStatusClass(result.status)}">${result.status || 'Unknown'}</span></td>
                 <td>${result.details || 'N/A'}</td>
             </tr>
         `).join('');
@@ -3160,15 +3741,11 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
             const titleBlockStatus = result.titleBlockStatus || 'Not verified';
             const complianceStatus = result.complianceStatus || 'Not verified';
             
-            // Apply status classes
-            const namingStatusClass = namingStatus === 'Compliant' ? 'success' : 
-                                    namingStatus === 'Non-compliant' ? 'error' : 'warning';
-            const deliveryStatusClass = deliveryStatus === 'Delivered' ? 'success' : 
-                                      deliveryStatus === 'Missing' ? 'error' : 'warning';
-            const titleBlockStatusClass = titleBlockStatus === 'Compliant' ? 'success' : 
-                                         titleBlockStatus === 'Non-compliant' ? 'error' : 'warning';
-            const complianceStatusClass = complianceStatus === 'Approved' ? 'success' : 
-                                        complianceStatus === 'Approved with comments' ? 'warning' : 'error';
+            // Apply status classes using the unified color system
+            const namingStatusClass = getStatusClass(namingStatus);
+            const deliveryStatusClass = getStatusClass(deliveryStatus);
+            const titleBlockStatusClass = getStatusClass(titleBlockStatus);
+            const complianceStatusClass = getStatusClass(complianceStatus);
             
             // Get existing comment for this file
             const existingComment = commentsData[result.fileName] || result.comment || '';
@@ -3321,20 +3898,226 @@ function setupCommentInputs() {
 }
 
 function getStatusClass(status) {
-    switch (status) {
-        case 'Done': return 'success';
-        case 'To Do': return 'warning';
-        case 'File not in Drawing List': return 'error';
-        default: return 'info';
+    // Red for: TO DO, Missing, Wrong, Non-Compliant
+    if (status === 'To Do' || status === 'Missing' || status === 'Wrong' || 
+        status === 'Non-compliant' || status === 'Not approved' || 
+        status === 'File not in Drawing List') {
+        return 'error';
     }
+    
+    // Green for: Approved, OK, Compliant, Done, Delivered
+    if (status === 'Approved' || status === 'Ok' || status === 'Compliant' || 
+        status === 'Done' || status === 'Delivered') {
+        return 'success';
+    }
+    
+    // Yellow/Warning for: everything else (Approved with comments, Not verified, etc.)
+    return 'warning';
 }
 
 // Chart Functions
 function initializeCharts() {
-    // Initialize empty charts
-    createComplianceChart();
-    createProgressChart('namingChart');
-    createProgressChart('titleChart');
+    // Initialize the four summary charts
+    createDeliveredChart();
+    createNamingComplianceChart();
+    createTitleBlockComplianceChart();
+    createOverallQCChart();
+}
+
+function createDeliveredChart() {
+    const ctx = document.getElementById('deliveredChart').getContext('2d');
+    window.deliveredChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Done', 'To Do'],
+            datasets: [{
+                data: [0, 1], // Start with minimal placeholder data
+                backgroundColor: ['#10b981', '#e5e7eb'],
+                borderColor: ['#10b981', '#d1d5db'],
+                borderWidth: 2,
+                cutout: '60%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    enabled: true,
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                            const percentage = total > 0 ? Math.round((context.parsed / total) * 100) : 0;
+                            return `${context.label}: ${context.parsed} (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            elements: {
+                arc: {
+                    borderWidth: 2
+                }
+            }
+        }
+    });
+}
+
+function createNamingComplianceChart() {
+    const ctx = document.getElementById('namingComplianceChart').getContext('2d');
+    window.namingComplianceChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Compliant', 'Non-Compliant'],
+            datasets: [{
+                data: [0, 1], // Start with minimal placeholder data
+                backgroundColor: ['#3b82f6', '#e5e7eb'],
+                borderColor: ['#3b82f6', '#d1d5db'],
+                borderWidth: 2,
+                cutout: '60%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    enabled: true,
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                            const percentage = total > 0 ? Math.round((context.parsed / total) * 100) : 0;
+                            return `${context.label}: ${context.parsed} (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            elements: {
+                arc: {
+                    borderWidth: 2
+                }
+            }
+        }
+    });
+}
+
+function createTitleBlockComplianceChart() {
+    const ctx = document.getElementById('titleBlockComplianceChart').getContext('2d');
+    window.titleBlockComplianceChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Compliant', 'Non-Compliant', 'Not Checked'],
+            datasets: [{
+                data: [0, 0, 1], // Start with minimal placeholder data
+                backgroundColor: ['#8b5cf6', '#ef4444', '#f59e0b'],
+                borderColor: ['#8b5cf6', '#ef4444', '#f59e0b'],
+                borderWidth: 2,
+                cutout: '60%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    enabled: true,
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                            const percentage = total > 0 ? Math.round((context.parsed / total) * 100) : 0;
+                            return `${context.label}: ${context.parsed} (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            elements: {
+                arc: {
+                    borderWidth: 2
+                }
+            }
+        }
+    });
+}
+
+function createOverallQCChart() {
+    const ctx = document.getElementById('overallQCChart').getContext('2d');
+    window.overallQCChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Approved', 'Approved with Comments', 'To Be Reviewed'],
+            datasets: [{
+                data: [0, 0, 1], // Start with minimal placeholder data
+                backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                borderColor: ['#10b981', '#f59e0b', '#ef4444'],
+                borderWidth: 2,
+                cutout: '60%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    enabled: true,
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                            const percentage = total > 0 ? Math.round((context.parsed / total) * 100) : 0;
+                            return `${context.label}: ${context.parsed} (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            elements: {
+                arc: {
+                    borderWidth: 2
+                }
+            }
+        }
+    });
+}
+
+function createStatusDistributionChart() {
+    const ctx = document.getElementById('statusDistributionChart').getContext('2d');
+    window.statusDistributionChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Critical', 'Review', 'Approved'],
+            datasets: [{
+                data: [0, 0, 0],
+                backgroundColor: [
+                    '#ef4444', // Critical - Red
+                    '#f59e0b', // Review - Orange
+                    '#10b981'  // Approved - Green
+                ],
+                borderWidth: 0,
+                cutout: '65%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                            const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
 }
 
 function createComplianceChart() {
@@ -3391,37 +4174,84 @@ function createProgressChart(canvasId) {
 }
 
 function updateCharts(drawingResults, namingResults, qaqcResults) {
-    // Update compliance chart
-    const complete = drawingResults.filter(r => r.status === 'Done').length;
-    const missing = drawingResults.filter(r => r.status === 'To Do').length;
-    const extra = drawingResults.filter(r => r.status === 'File not in Drawing List').length;
+    console.log('📊 === UPDATING CHARTS ===');
+    console.log('Drawing results for charts:', drawingResults?.length || 0);
+    console.log('Naming results for charts:', namingResults?.length || 0);
+    console.log('QA-QC results for charts:', qaqcResults?.length || 0);
     
-    if (window.complianceChart) {
-        window.complianceChart.data.datasets[0].data = [complete, missing, extra];
-        window.complianceChart.update();
+    // Update compliance chart (drawing list status)
+    if (drawingResults && drawingResults.length > 0) {
+        const complete = drawingResults.filter(r => r.status === 'Done').length;
+        const missing = drawingResults.filter(r => r.status === 'To Do' || r.status === 'Not verified').length;
+        const extra = drawingResults.filter(r => r.status === 'File not in Drawing List').length;
+        
+        console.log('📊 Compliance chart data:', { complete, missing, extra });
+        
+        if (window.complianceChart) {
+            window.complianceChart.data.datasets[0].data = [complete, missing, extra];
+            window.complianceChart.update();
+        }
     }
     
-    // Update naming chart
-    const namingOK = namingResults.filter(r => r.status === 'Ok').length;
-    const namingPercent = Math.round((namingOK / namingResults.length) * 100) || 0;
-    
-    if (window.namingChart) {
-        window.namingChart.data.datasets[0].data = [namingPercent, 100 - namingPercent];
-        window.namingChart.update();
+    // Update naming chart - use proper naming status
+    if (namingResults && namingResults.length > 0) {
+        // Count files with compliant naming using the updated status values
+        const namingCompliant = namingResults.filter(r => 
+            r.status === 'Ok' || r.status === 'Compliant'
+        ).length;
+        const namingPercent = Math.round((namingCompliant / namingResults.length) * 100) || 0;
+        
+        console.log('📊 Naming chart data:', {
+            total: namingResults.length,
+            compliant: namingCompliant,
+            percent: namingPercent
+        });
+        
+        if (window.namingChart) {
+            window.namingChart.data.datasets[0].data = [namingPercent, 100 - namingPercent];
+            window.namingChart.update();
+        }
+        
+        const namingPercentEl = document.getElementById('namingPercent');
+        if (namingPercentEl) {
+            namingPercentEl.textContent = `${namingPercent}% Compliant`;
+        }
+    } else {
+        console.log('📊 No naming results available for chart update');
     }
     
-    document.getElementById('namingPercent').textContent = `${namingPercent}% OK`;
-    
-    // Update title chart
-    const titleOK = qaqcResults.filter(r => r.result === 'PASS').length;
-    const titlePercent = Math.round((titleOK / qaqcResults.length) * 100) || 0;
-    
-    if (window.titleChart) {
-        window.titleChart.data.datasets[0].data = [titlePercent, 100 - titlePercent];
-        window.titleChart.update();
+    // Update title chart - use QA-QC compliance status
+    if (qaqcResults && qaqcResults.length > 0) {
+        // Count files with approved compliance status
+        const approvedCount = qaqcResults.filter(r => 
+            r.complianceStatus === 'Approved' || r.complianceStatus === 'Approved with comments'
+        ).length;
+        const titlePercent = Math.round((approvedCount / qaqcResults.length) * 100) || 0;
+        
+        console.log('📊 Title chart data:', {
+            total: qaqcResults.length,
+            approved: approvedCount,
+            percent: titlePercent,
+            breakdown: {
+                approved: qaqcResults.filter(r => r.complianceStatus === 'Approved').length,
+                approvedWithComments: qaqcResults.filter(r => r.complianceStatus === 'Approved with comments').length,
+                notApproved: qaqcResults.filter(r => r.complianceStatus === 'Not approved').length,
+                notVerified: qaqcResults.filter(r => r.complianceStatus === 'Not verified').length
+            }
+        });
+        
+        if (window.titleChart) {
+            window.titleChart.data.datasets[0].data = [titlePercent, 100 - titlePercent];
+            window.titleChart.update();
+        }
+        
+        const titlePercentEl = document.getElementById('titlePercent');
+        if (titlePercentEl) {
+            titlePercentEl.textContent = `${titlePercent}% Approved`;
+        }
+    } else {
+        console.log('📊 No QA-QC results available for title chart update');
     }
-    
-    document.getElementById('titlePercent').textContent = `${titlePercent}% OK`;
 }
 
 // Utility Functions

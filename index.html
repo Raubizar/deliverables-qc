@@ -144,43 +144,60 @@
                     <h2>Summary</h2>
                     
                     <div class="summary-grid">
-                        <div class="metric-card">
-                            <div class="metric-value info" id="totalFiles">0</div>
-                            <div class="metric-label">Total Files</div>
+                        <!-- Delivered -->
+                        <div class="summary-card">
+                            <h4>Delivered</h4>
+                            <div class="chart-container">
+                                <canvas id="deliveredChart"></canvas>
+                            </div>
+                            <div class="summary-metrics">
+                                <div class="metric-value" id="deliveredPercent">0%</div>
+                                <div class="metric-detail">
+                                    <span id="deliveredCount">0</span> of <span id="deliveredTotal">0</span> files
+                                </div>
+                            </div>
                         </div>
-                        <div class="metric-card">
-                            <div class="metric-value warning" id="missingFiles">0</div>
-                            <div class="metric-label">Missing</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-value success" id="compliantFiles">0</div>
-                            <div class="metric-label">Compliant</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-value" id="overallScore">0%</div>
-                            <div class="metric-label">Overall</div>
-                        </div>
-                    </div>
 
-                    <div class="charts-grid">
-                        <div class="chart-card">
-                            <h4>Compliance Distribution</h4>
-                            <canvas id="complianceChart"></canvas>
-                            <div class="progress-text">Drawing List vs Files</div>
-                        </div>
-                        <div class="chart-card">
-                            <h4>Naming</h4>
-                            <div class="progress-circle">
-                                <canvas id="namingChart"></canvas>
+                        <!-- Naming Compliance -->
+                        <div class="summary-card">
+                            <h4>Naming Compliance</h4>
+                            <div class="chart-container">
+                                <canvas id="namingComplianceChart"></canvas>
                             </div>
-                            <div class="progress-text" id="namingPercent">0% OK</div>
-                        </div>
-                        <div class="chart-card">
-                            <h4>Title Blocks</h4>
-                            <div class="progress-circle">
-                                <canvas id="titleChart"></canvas>
+                            <div class="summary-metrics">
+                                <div class="metric-value" id="namingCompliancePercent">0%</div>
+                                <div class="metric-detail">
+                                    <span id="namingCompliantCount">0</span> of <span id="namingTotalCount">0</span> files
+                                </div>
                             </div>
-                            <div class="progress-text" id="titlePercent">0% OK</div>
+                        </div>
+
+                        <!-- Title Block Information Compliance -->
+                        <div class="summary-card">
+                            <h4>Title Block Information Compliance</h4>
+                            <div class="chart-container">
+                                <canvas id="titleBlockComplianceChart"></canvas>
+                            </div>
+                            <div class="summary-metrics">
+                                <div class="metric-value" id="titleBlockCompliancePercent">0%</div>
+                                <div class="metric-detail">
+                                    <span id="titleBlockCompliantCount">0</span> of <span id="titleBlockTotalCount">0</span> files
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Overall QC Score -->
+                        <div class="summary-card">
+                            <h4>Overall QC Score</h4>
+                            <div class="chart-container">
+                                <canvas id="overallQCChart"></canvas>
+                            </div>
+                            <div class="summary-metrics">
+                                <div class="metric-value" id="overallQCPercent">0%</div>
+                                <div class="metric-detail">
+                                    <span id="qcApprovedCount">0</span> of <span id="qcTotalCount">0</span> files
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
