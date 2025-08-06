@@ -41,9 +41,11 @@
 // Global variables
 let fileNamesFromExcel = [];
 let fileResultsFromFolder = [];
+let uploadedFiles = []; // Files uploaded from folder input
 let namingRulesData = [];
 let titleBlockData = [];
 let currentFilter = 'all';
+let commentsData = {}; // Store comments by file name
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
@@ -58,53 +60,174 @@ document.addEventListener('DOMContentLoaded', function() {
         return titleBlockData;
     };
     
+    // Add table population debugging helper
+    window.debugTables = function() {
+        console.log('=== DEBUG TABLE POPULATION ===');
+        console.log('📊 Data status:');
+        console.log('  - uploadedFiles:', uploadedFiles ? uploadedFiles.length : 'undefined');
+        console.log('  - fileResultsFromFolder:', fileResultsFromFolder ? fileResultsFromFolder.length : 'undefined');
+        console.log('  - titleBlockData:', titleBlockData ? titleBlockData.length : 'undefined');
+        console.log('  - currentRegisterWorkbook:', !!window.currentRegisterWorkbook);
+        console.log('  - fileNamesFromExcel:', fileNamesFromExcel ? fileNamesFromExcel.length : 'undefined');
+        
+        console.log('📋 Table elements:');
+        const drawingTable = document.getElementById('drawingListResults');
+        const namingTable = document.getElementById('namingResults');
+        const qaqcTable = document.getElementById('qaqcResults');
+        
+        console.log('  - drawingListResults exists:', !!drawingTable);
+        console.log('  - drawingListResults rows:', drawingTable ? drawingTable.children.length : 'N/A');
+        console.log('  - namingResults exists:', !!namingTable);
+        console.log('  - namingResults rows:', namingTable ? namingTable.children.length : 'N/A');
+        console.log('  - qaqcResults exists:', !!qaqcTable);
+        console.log('  - qaqcResults rows:', qaqcTable ? qaqcTable.children.length : 'N/A');
+        
+        return {
+            uploadedFiles: uploadedFiles ? uploadedFiles.length : 0,
+            fileResultsFromFolder: fileResultsFromFolder ? fileResultsFromFolder.length : 0,
+            titleBlockData: titleBlockData ? titleBlockData.length : 0,
+            hasRegisterWorkbook: !!window.currentRegisterWorkbook,
+            fileNamesFromExcel: fileNamesFromExcel ? fileNamesFromExcel.length : 0,
+            tableElements: {
+                drawing: !!drawingTable,
+                naming: !!namingTable,
+                qaqc: !!qaqcTable
+            },
+            tableRows: {
+                drawing: drawingTable ? drawingTable.children.length : 0,
+                naming: namingTable ? namingTable.children.length : 0,
+                qaqc: qaqcTable ? qaqcTable.children.length : 0
+            }
+        };
+    };
+    
+    // Add manual table population trigger
+    window.triggerTablePopulation = function() {
+        console.log('🔄 Manual table population triggered');
+        populateInitialTablesEnhanced();
+        return 'Table population triggered - check console for details';
+    };
+    
+    // Add table validation trigger
+    window.validateTablePopulation = function() {
+        return validateTablePopulation();
+    };
+    
+    // Enhanced debugging function for immediate testing
+    window.debugTablesEnhanced = function() {
+        console.log('🔍 === ENHANCED TABLE DEBUGGING ===');
+        
+        // Check DOM readiness
+        console.log('DOM ready state:', document.readyState);
+        
+        // Check data availability
+        const dataStatus = {
+            uploadedFiles: uploadedFiles ? uploadedFiles.length : 0,
+            fileResultsFromFolder: fileResultsFromFolder ? fileResultsFromFolder.length : 0,
+            titleBlockData: titleBlockData ? titleBlockData.length : 0,
+            hasRegisterWorkbook: !!window.currentRegisterWorkbook
+        };
+        console.log('📊 Data status:', dataStatus);
+        
+        // Check table elements
+        const tables = {
+            drawingListResults: document.getElementById('drawingListResults'),
+            namingResults: document.getElementById('namingResults'),
+            qaqcResults: document.getElementById('qaqcResults')
+        };
+        
+        console.log('📋 Table elements:', {
+            drawingListResults: !!tables.drawingListResults,
+            namingResults: !!tables.namingResults,
+            qaqcResults: !!tables.qaqcResults
+        });
+        
+        if (tables.drawingListResults) {
+            console.log('Drawing table rows:', tables.drawingListResults.children.length);
+        }
+        if (tables.namingResults) {
+            console.log('Naming table rows:', tables.namingResults.children.length);
+        }
+        if (tables.qaqcResults) {
+            console.log('QA-QC table rows:', tables.qaqcResults.children.length);
+        }
+        
+        // Trigger enhanced population
+        console.log('🔄 Triggering enhanced table population...');
+        populateInitialTablesEnhanced();
+        
+        return { dataStatus, tables };
+    };
+    
+    // Add test data generation for debugging
+    window.generateTestData = function() {
+        console.log('🧪 Generating test data for debugging...');
+        
+        // Generate test folder files
+        uploadedFiles = [
+            { name: 'TEST-001-P01.pdf', path: 'drawings/TEST-001-P01.pdf', file: {} },
+            { name: 'TEST-002-P02.pdf', path: 'drawings/TEST-002-P02.pdf', file: {} },
+            { name: 'TEST-003-P01.dwg', path: 'drawings/TEST-003-P01.dwg', file: {} }
+        ];
+        fileResultsFromFolder = uploadedFiles;
+        
+        // Generate test title block data
+        titleBlockData = [
+            {
+                sheetNumber: 'TEST-001',
+                sheetName: 'Test Drawing 1',
+                fileName: 'TEST-001-P01.pdf',
+                revisionCode: 'P01',
+                revisionDate: '2025-01-01',
+                revisionDescription: 'For Information',
+                suitabilityCode: 'S0',
+                stageDescription: 'Stage 0'
+            },
+            {
+                sheetNumber: 'TEST-002',
+                sheetName: 'Test Drawing 2', 
+                fileName: 'TEST-002-P02.pdf',
+                revisionCode: 'P02',
+                revisionDate: '2025-01-02',
+                revisionDescription: 'For Review',
+                suitabilityCode: 'S1',
+                stageDescription: 'Stage 1'
+            }
+        ];
+        
+        // Generate test Excel file names
+        fileNamesFromExcel = ['TEST-001', 'TEST-002', 'TEST-003'];
+        
+        console.log('✅ Test data generated:');
+        console.log('  - uploadedFiles:', uploadedFiles.length);
+        console.log('  - titleBlockData:', titleBlockData.length);
+        console.log('  - fileNamesFromExcel:', fileNamesFromExcel.length);
+        
+        // Trigger table population with test data
+        populateInitialTablesEnhanced();
+        
+        return 'Test data generated and tables populated';
+    };
+    
     try {
         initializeEventListeners();
         initializeCharts();
         
-        // Add sample data for demonstration
-        setTimeout(() => {
-            loadSampleData();
-        }, 1000);
+        // Setup initial comment inputs
+        setupCommentInputs();
+        
+        // Removed automatic sample data loading - data will load when files are uploaded
         
         console.log('Application initialized successfully');
-        console.log('Type "debugTitleBlocks()" in console to check title block data');
+        console.log('🔧 Available debugging commands:');
+        console.log('  - debugTitleBlocks() - Check title block data');
+        console.log('  - debugTables() - Check table population status');
+        console.log('  - triggerTablePopulation() - Manually populate tables');
+        console.log('  - validateTablePopulation() - Validate current table state');
     } catch (error) {
         console.error('Error initializing application:', error);
     }
 });
-
-// Add sample data for demonstration
-function loadSampleData() {
-    // Simulate some sample metrics
-    document.getElementById('totalFiles').textContent = '142';
-    document.getElementById('missingFiles').textContent = '8';
-    document.getElementById('compliantFiles').textContent = '127';
-    document.getElementById('overallScore').textContent = '89%';
-    
-    // Update colors
-    updateMetricColor('missingFiles', 'warning');
-    updateMetricColor('overallScore', 'success');
-    
-    // Update charts with sample data
-    if (window.complianceChart) {
-        window.complianceChart.data.datasets[0].data = [134, 8, 5];
-        window.complianceChart.update();
-    }
-    
-    if (window.namingChart) {
-        window.namingChart.data.datasets[0].data = [89, 11];
-        window.namingChart.update();
-    }
-    
-    if (window.titleChart) {
-        window.titleChart.data.datasets[0].data = [92, 8];
-        window.titleChart.update();
-    }
-    
-    document.getElementById('namingPercent').textContent = '89% OK';
-    document.getElementById('titlePercent').textContent = '92% OK';
-}
 
 // Event Listeners
 function initializeEventListeners() {
@@ -168,15 +291,44 @@ function handleFolderUpload(event) {
     // Update UI
     updateFileStatus('folderStatus', `Selected ${files.length} files`, 'success');
     
-    // Store files
-    fileResultsFromFolder = files.map(file => ({
+    // Store files in both global variables for compatibility
+    const fileObjects = files.map(file => ({
         name: file.name,
         path: file.webkitRelativePath || file.name,
         file: file
     }));
+    
+    fileResultsFromFolder = fileObjects;
+    uploadedFiles = fileObjects; // Also store in uploadedFiles for compatibility
+    
+    console.log(`✅ Stored ${fileObjects.length} files in global variables`);
+    console.log('Sample files:', fileObjects.slice(0, 3).map(f => f.name));
 
     // Show success feedback
     showNotification(`Loaded ${files.length} files from folder`, 'success');
+    
+    // Immediately populate tables with real data - multiple attempts for reliability
+    console.log('🔄 Folder files loaded, triggering immediate table population...');
+    
+    // Try immediate population
+    populateInitialTablesEnhanced();
+    
+    // Also try with slight delay for any timing issues
+    setTimeout(() => {
+        console.log('🔄 Delayed table population trigger...');
+        populateInitialTablesEnhanced();
+        
+        // If we also have title block data, this should populate QA-QC table too
+        if (titleBlockData && titleBlockData.length > 0) {
+            console.log('✅ Both folder files and title blocks available - full table population triggered');
+        }
+    }, 100);
+    
+    // Final attempt after a longer delay
+    setTimeout(() => {
+        console.log('🔄 Final table population attempt...');
+        populateInitialTablesEnhanced();
+    }, 500);
     
     // Update file chip to selected state - find by proximity to folderInput
     try {
@@ -239,6 +391,651 @@ function handleNamingRulesFile(event) {
         }
     } catch (error) {
         console.log('Could not update naming chip selected state:', error);
+    }
+}
+
+// Data Validation Function
+function validateAllData() {
+    console.log('🔍 === COMPREHENSIVE DATA VALIDATION ===');
+    
+    const status = {
+        hasUploadedFiles: false,
+        hasFileResults: false,
+        hasRegisterWorkbook: false,
+        hasTitleBlocks: false,
+        hasNamingRules: false,
+        folderFiles: [],
+        folderFilesCount: 0,
+        titleBlocksCount: 0,
+        errors: [],
+        warnings: []
+    };
+    
+    // Check uploaded files
+    if (typeof uploadedFiles !== 'undefined' && uploadedFiles && uploadedFiles.length > 0) {
+        status.hasUploadedFiles = true;
+        status.folderFiles = uploadedFiles;
+        status.folderFilesCount = uploadedFiles.length;
+        console.log('✅ uploadedFiles available:', uploadedFiles.length);
+    } else if (typeof fileResultsFromFolder !== 'undefined' && fileResultsFromFolder && fileResultsFromFolder.length > 0) {
+        status.hasFileResults = true;
+        status.folderFiles = fileResultsFromFolder;
+        status.folderFilesCount = fileResultsFromFolder.length;
+        console.log('✅ fileResultsFromFolder available:', fileResultsFromFolder.length);
+    } else {
+        status.errors.push('No folder files found');
+        console.log('❌ No folder files available');
+    }
+    
+    // Check register workbook
+    if (window.currentRegisterWorkbook) {
+        status.hasRegisterWorkbook = true;
+        console.log('✅ Register workbook available');
+    } else {
+        status.warnings.push('No register workbook loaded');
+        console.log('⚠️ No register workbook available');
+    }
+    
+    // Check title blocks
+    if (titleBlockData && titleBlockData.length > 0) {
+        status.hasTitleBlocks = true;
+        status.titleBlocksCount = titleBlockData.length;
+        console.log('✅ Title blocks available:', titleBlockData.length);
+    } else {
+        status.warnings.push('No title blocks loaded');
+        console.log('⚠️ No title blocks available');
+    }
+    
+    // Check naming rules
+    if (namingRulesData) {
+        status.hasNamingRules = true;
+        console.log('✅ Naming rules available');
+    } else {
+        status.warnings.push('No naming rules loaded');
+        console.log('⚠️ No naming rules available');
+    }
+    
+    console.log('📊 Data validation summary:', {
+        folderFiles: status.folderFilesCount,
+        titleBlocks: status.titleBlocksCount,
+        hasRegister: status.hasRegisterWorkbook,
+        hasNaming: status.hasNamingRules,
+        errors: status.errors.length,
+        warnings: status.warnings.length
+    });
+    
+    return status;
+}
+
+// IMPROVED: Enhanced table population with better error handling and DOM readiness checks
+function populateInitialTablesEnhanced() {
+    console.log('🚀 === ENHANCED TABLE POPULATION STARTED ===');
+    console.log('⏰ Timestamp:', new Date().toLocaleTimeString());
+    
+    // Ensure DOM is ready
+    if (document.readyState === 'loading') {
+        console.log('⏳ DOM not ready, scheduling retry...');
+        setTimeout(() => populateInitialTablesEnhanced(), 100);
+        return;
+    }
+    
+    try {
+        // Get table elements with detailed error checking
+        const drawingTable = document.getElementById('drawingListResults');
+        const namingTable = document.getElementById('namingResults');
+        const qaqcTable = document.getElementById('qaqcResults');
+        
+        console.log('🔍 Table elements status:', {
+            drawingTable: !!drawingTable,
+            namingTable: !!namingTable,
+            qaqcTable: !!qaqcTable
+        });
+        
+        // If any table is missing, log detailed error and attempt to continue
+        if (!drawingTable) console.error('❌ drawingListResults table not found');
+        if (!namingTable) console.error('❌ namingResults table not found');
+        if (!qaqcTable) console.error('❌ qaqcResults table not found');
+        
+        // Clear existing content
+        if (drawingTable) {
+            drawingTable.innerHTML = '';
+            console.log('🧹 Cleared drawing table');
+        }
+        if (namingTable) {
+            namingTable.innerHTML = '';
+            console.log('🧹 Cleared naming table');
+        }
+        if (qaqcTable) {
+            qaqcTable.innerHTML = '';
+            console.log('🧹 Cleared QA-QC table');
+        }
+        
+        // Get data with comprehensive validation
+        const dataStatus = validateAllData();
+        const folderFiles = dataStatus.folderFiles || [];
+        
+        console.log('📊 Data validation results:', {
+            folderFilesCount: folderFiles.length,
+            hasRegisterWorkbook: !!window.currentRegisterWorkbook,
+            hasTitleBlocks: !!(titleBlockData && titleBlockData.length > 0),
+            sampleFileNames: folderFiles.slice(0, 3).map(f => f.name)
+        });
+        
+        // Always try to populate Naming Checker first (least dependencies)
+        if (namingTable && folderFiles.length > 0) {
+            console.log('📝 Populating Naming Checker...');
+            try {
+                const namingContent = folderFiles.slice(0, 15).map((file, index) => {
+                    const fileName = file.name || 'Unknown';
+                    const fileExt = fileName.split('.').pop()?.toUpperCase() || 'Unknown';
+                    const hasRevision = /[._-][PR]\d{2}[._-]|[._-]REV[._-]/i.test(fileName);
+                    
+                    return `
+                        <tr>
+                            <td>${file.path || file.name}</td>
+                            <td>${fileName}</td>
+                            <td><span class="status-badge ${hasRevision ? 'info' : 'warning'}">Preview: ${hasRevision ? 'Pattern Found' : 'Check Required'}</span></td>
+                            <td>${fileExt} file${hasRevision ? ', has revision pattern' : ', no revision pattern detected'}</td>
+                        </tr>
+                    `;
+                }).join('');
+                
+                namingTable.innerHTML = namingContent;
+                console.log('✅ Naming Checker populated with', Math.min(15, folderFiles.length), 'entries');
+                console.log('📄 First 3 entries:', folderFiles.slice(0, 3).map(f => f.name));
+            } catch (error) {
+                console.error('❌ Error populating Naming Checker:', error);
+            }
+        } else {
+            console.log('⚠️ Naming Checker not populated:', {
+                hasTable: !!namingTable,
+                filesCount: folderFiles.length
+            });
+        }
+        
+        // Populate Drawing List (basic file list even without Excel)
+        if (drawingTable && folderFiles.length > 0) {
+            console.log('📋 Populating Drawing List...');
+            try {
+                const drawingContent = folderFiles.slice(0, 15).map((file, index) => {
+                    return `
+                        <tr>
+                            <td>${index + 1}. ${file.name}</td>
+                            <td>${file.name}</td>
+                            <td><span class="status-badge info">Preview: File Available</span></td>
+                        </tr>
+                    `;
+                }).join('');
+                
+                drawingTable.innerHTML = drawingContent;
+                console.log('✅ Drawing List populated with', Math.min(15, folderFiles.length), 'entries');
+            } catch (error) {
+                console.error('❌ Error populating Drawing List:', error);
+            }
+        } else {
+            console.log('⚠️ Drawing List not populated:', {
+                hasTable: !!drawingTable,
+                filesCount: folderFiles.length
+            });
+        }
+        
+        // Populate QA-QC if title block data is available
+        if (qaqcTable && titleBlockData && titleBlockData.length > 0 && folderFiles.length > 0) {
+            console.log('📊 Populating QA-QC...');
+            try {
+                const qaqcContent = titleBlockData.slice(0, 10).map((tbData, index) => {
+                    const sheetNumber = tbData.sheetNumber || '';
+                    const sheetName = tbData.sheetName || '';
+                    const fileName = tbData.fileName || sheetNumber || `Entry ${index + 1}`;
+                    
+                    return `
+                        <tr>
+                            <td>${sheetNumber || 'N/A'}</td>
+                            <td>${sheetName || 'N/A'}</td>
+                            <td>${fileName}</td>
+                            <td>${tbData.revisionCode || 'N/A'}</td>
+                            <td>${tbData.revisionDate || 'N/A'}</td>
+                            <td>${tbData.revisionDescription || 'N/A'}</td>
+                            <td>${tbData.suitabilityCode || 'N/A'}</td>
+                            <td>${tbData.stageDescription || 'N/A'}</td>
+                            <td><span class="status-badge info">Preview</span></td>
+                            <td><span class="status-badge info">Preview: Available</span></td>
+                            <td><input type="text" class="comment-input" placeholder="Preview mode..." readonly></td>
+                            <td><span class="status-badge info">Preview</span></td>
+                            <td>Preview data</td>
+                        </tr>
+                    `;
+                }).join('');
+                
+                qaqcTable.innerHTML = qaqcContent;
+                console.log('✅ QA-QC populated with', Math.min(10, titleBlockData.length), 'entries');
+            } catch (error) {
+                console.error('❌ Error populating QA-QC:', error);
+            }
+        } else {
+            console.log('⚠️ QA-QC not populated:', {
+                hasTable: !!qaqcTable,
+                hasTitleData: !!(titleBlockData && titleBlockData.length > 0),
+                filesCount: folderFiles.length
+            });
+        }
+        
+        // Final validation
+        setTimeout(() => {
+            const finalValidation = {
+                drawingRows: drawingTable ? drawingTable.children.length : 0,
+                namingRows: namingTable ? namingTable.children.length : 0,
+                qaqcRows: qaqcTable ? qaqcTable.children.length : 0
+            };
+            
+            console.log('📊 Final table population status:', finalValidation);
+            
+            const totalRows = finalValidation.drawingRows + finalValidation.namingRows + finalValidation.qaqcRows;
+            if (totalRows > 0) {
+                console.log(`🎉 SUCCESS: ${totalRows} total rows populated!`);
+                showNotification(`✅ Tables populated successfully! (${totalRows} total rows)`, 'success');
+            } else {
+                console.log('⚠️ WARNING: No tables were populated');
+                showNotification('⚠️ Tables are empty. Check console for details.', 'warning');
+            }
+        }, 200);
+        
+    } catch (error) {
+        console.error('❌ Critical error in table population:', error);
+        showNotification('❌ Error populating tables: ' + error.message, 'error');
+    }
+}
+
+// NEW: Populate initial tables with real data immediately when files are uploaded
+function populateInitialTables() {
+    console.log('📞 populateInitialTables() called - redirecting to enhanced version');
+    populateInitialTablesEnhanced();
+}
+
+// Validate that tables were populated correctly
+function validateTablePopulation() {
+    console.log('🔍 === VALIDATING TABLE POPULATION ===');
+    
+    const drawingTable = document.getElementById('drawingListResults');
+    const namingTable = document.getElementById('namingResults');
+    const qaqcTable = document.getElementById('qaqcResults');
+    
+    const validation = {
+        drawing: {
+            exists: !!drawingTable,
+            rows: drawingTable ? drawingTable.children.length : 0,
+            populated: false
+        },
+        naming: {
+            exists: !!namingTable,
+            rows: namingTable ? namingTable.children.length : 0,
+            populated: false
+        },
+        qaqc: {
+            exists: !!qaqcTable,
+            rows: qaqcTable ? qaqcTable.children.length : 0,
+            populated: false
+        }
+    };
+    
+    // Check if tables have content
+    validation.drawing.populated = validation.drawing.rows > 0;
+    validation.naming.populated = validation.naming.rows > 0;
+    validation.qaqc.populated = validation.qaqc.rows > 0;
+    
+    console.log('📊 Table validation results:', validation);
+    
+    // Provide user feedback
+    const populatedTables = [
+        validation.drawing.populated ? 'Drawing List' : null,
+        validation.naming.populated ? 'Naming Checker' : null,
+        validation.qaqc.populated ? 'QA-QC' : null
+    ].filter(Boolean);
+    
+    if (populatedTables.length > 0) {
+        const message = `✅ Populated tables: ${populatedTables.join(', ')}`;
+        showNotification(message, 'success');
+        console.log(message);
+    } else {
+        const message = '⚠️ No tables were populated. Check console for details.';
+        showNotification(message, 'warning');
+        console.log(message);
+    }
+    
+    return validation;
+}
+
+// Populate Drawing List preview
+function populateDrawingListPreview(folderFiles = null) {
+    // Use parameter or try to find global variable
+    if (!folderFiles) {
+        if (typeof uploadedFiles !== 'undefined' && uploadedFiles) {
+            folderFiles = uploadedFiles;
+        } else if (typeof fileResultsFromFolder !== 'undefined' && fileResultsFromFolder) {
+            folderFiles = fileResultsFromFolder;
+        } else {
+            console.log('❌ No folder files available for Drawing List preview');
+            return;
+        }
+    }
+    
+    if (!window.currentRegisterWorkbook) {
+        console.log('❌ No register workbook available');
+        return;
+    }
+    
+    console.log('📋 Creating Drawing List preview...');
+    console.log('📁 Using folder files:', folderFiles.length);
+    
+    try {
+        // Get the currently selected sheet and column
+        const sheetSelect = document.getElementById('registerSheetSelect');
+        const columnSelect = document.getElementById('registerColumnSelect');
+        
+        if (!sheetSelect || !columnSelect || !sheetSelect.value || !columnSelect.value) {
+            console.log('⏳ Sheet/column not selected yet, showing basic file list...');
+            
+            // Show basic file list from folder with enhanced display
+            const drawingTable = document.getElementById('drawingListResults');
+            if (!drawingTable) {
+                console.error('❌ drawingListResults table element not found');
+                return;
+            }
+            
+            drawingTable.innerHTML = folderFiles.slice(0, 10).map((file, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${file.name || 'Unknown'}</td>
+                    <td><span class="status-badge info">Awaiting Register Configuration</span></td>
+                </tr>
+            `).join('');
+            
+            if (folderFiles.length > 10) {
+                drawingTable.innerHTML += `
+                    <tr>
+                        <td colspan="3" style="text-align: center; font-style: italic; color: #666;">
+                            ... and ${folderFiles.length - 10} more files (${folderFiles.length} total)
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            console.log(`✅ Basic file list displayed: ${Math.min(10, folderFiles.length)} of ${folderFiles.length} files`);
+            return;
+        }
+        
+        // Get Excel data
+        const sheetIndex = parseInt(sheetSelect.value);
+        const columnIndex = parseInt(columnSelect.value);
+        
+        if (isNaN(sheetIndex) || isNaN(columnIndex)) {
+            console.log('⚠️ Invalid sheet or column selection');
+            return;
+        }
+        
+        const sheetName = window.currentRegisterWorkbook.SheetNames[sheetIndex];
+        if (!sheetName) {
+            console.log('⚠️ Sheet not found at index:', sheetIndex);
+            return;
+        }
+        
+        const worksheet = window.currentRegisterWorkbook.Sheets[sheetName];
+        if (!worksheet) {
+            console.log('⚠️ Worksheet not accessible:', sheetName);
+            return;
+        }
+        
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        
+        console.log(`📊 Using sheet: "${sheetName}" (index ${sheetIndex}), column index: ${columnIndex}`);
+        
+        // Extract file names from Excel
+        const excelFileNames = jsonData.slice(1)
+            .map(row => row[columnIndex])
+            .filter(name => name && name.toString().trim())
+            .map(name => name.toString().trim());
+        
+        console.log(`📊 Found ${excelFileNames.length} file names in Excel`);
+        console.log(`📁 Found ${folderFiles.length} files in folder`);
+        
+        // Create preview results
+        const previewResults = [];
+        const folderFileNames = folderFiles.map(f => f.name);
+        
+        // Show first 15 Excel entries with their match status
+        excelFileNames.slice(0, 15).forEach(excelName => {
+            const matchedFile = folderFileNames.find(folderName => 
+                folderName.toLowerCase().includes(excelName.toLowerCase()) ||
+                excelName.toLowerCase().includes(folderName.toLowerCase())
+            );
+            
+            previewResults.push({
+                excelName: excelName,
+                matchedFile: matchedFile || '-',
+                status: matchedFile ? 'Preview: Found' : 'Preview: Not Found'
+            });
+        });
+        
+        // Populate table
+        const drawingTable = document.getElementById('drawingListResults');
+        drawingTable.innerHTML = previewResults.map(result => `
+            <tr>
+                <td>${result.excelName}</td>
+                <td>${result.matchedFile}</td>
+                <td><span class="status-badge ${result.status.includes('Found') ? 'info' : 'warning'}">${result.status}</span></td>
+            </tr>
+        `).join('');
+        
+        if (excelFileNames.length > 15) {
+            drawingTable.innerHTML += `
+                <tr>
+                    <td colspan="3" style="text-align: center; font-style: italic; color: #666;">
+                        ... and ${excelFileNames.length - 15} more entries (click "Run Checks" for complete analysis)
+                    </td>
+                </tr>
+            `;
+        }
+        
+        console.log('✅ Drawing List preview populated');
+        
+    } catch (error) {
+        console.error('❌ Error in Drawing List preview:', error);
+        
+        // Fallback: show basic file list
+        const drawingTable = document.getElementById('drawingListResults');
+        drawingTable.innerHTML = folderFiles.slice(0, 10).map(file => `
+            <tr>
+                <td>-</td>
+                <td>${file.name}</td>
+                <td><span class="status-badge info">Preview Mode</span></td>
+            </tr>
+        `).join('');
+    }
+}
+
+// Populate Naming Checker preview
+function populateNamingCheckerPreview(folderFiles = null) {
+    // Use parameter or try to find global variable
+    if (!folderFiles) {
+        if (typeof uploadedFiles !== 'undefined' && uploadedFiles) {
+            folderFiles = uploadedFiles;
+        } else if (typeof fileResultsFromFolder !== 'undefined' && fileResultsFromFolder) {
+            folderFiles = fileResultsFromFolder;
+        } else {
+            console.log('❌ No folder files available for Naming Checker preview');
+            return;
+        }
+    }
+    
+    if (folderFiles.length === 0) {
+        console.log('❌ No files to process in Naming Checker');
+        return;
+    }
+    
+    console.log('📝 Creating Naming Checker preview...');
+    console.log('📁 Using folder files:', folderFiles.length);
+    
+    try {
+        // Show first 15 files with basic naming info
+        const namingTable = document.getElementById('namingResults');
+        if (!namingTable) {
+            console.error('❌ namingResults table element not found');
+            return;
+        }
+        
+        console.log('📝 Populating naming checker with', Math.min(15, folderFiles.length), 'files');
+        
+        namingTable.innerHTML = folderFiles.slice(0, 15).map((file, index) => {
+            const fileName = file.name || 'Unknown';
+            const fileExt = fileName.split('.').pop()?.toUpperCase() || 'Unknown';
+            const hasRevision = /[._-][PR]\d{2}[._-]|[._-]REV[._-]/i.test(fileName);
+            
+            let status = 'Preview';
+            let details = `${fileExt} file`;
+            
+            if (hasRevision) {
+                details += ', has revision pattern';
+                status = 'Preview: Pattern Found';
+            } else {
+                details += ', no revision pattern detected';
+                status = 'Preview: Check Required';
+            }
+            
+            return `
+                <tr>
+                    <td>${file.path || file.name}</td>
+                    <td>${fileName}</td>
+                    <td><span class="status-badge ${hasRevision ? 'info' : 'warning'}">${status}</span></td>
+                    <td>${details}</td>
+                </tr>
+            `;
+        }).join('');
+        
+        if (folderFiles.length > 15) {
+            namingTable.innerHTML += `
+                <tr>
+                    <td colspan="4" style="text-align: center; font-style: italic; color: #666;">
+                        ... and ${folderFiles.length - 15} more files (click "Run Checks" for complete analysis)
+                    </td>
+                </tr>
+            `;
+        }
+        
+        console.log('✅ Naming Checker preview populated');
+        
+    } catch (error) {
+        console.error('❌ Error in Naming Checker preview:', error);
+    }
+}
+
+// Populate QA-QC preview
+function populateQAQCPreview(folderFiles = null) {
+    // Use parameter or try to find global variable
+    if (!folderFiles) {
+        if (typeof uploadedFiles !== 'undefined' && uploadedFiles) {
+            folderFiles = uploadedFiles;
+        } else if (typeof fileResultsFromFolder !== 'undefined' && fileResultsFromFolder) {
+            folderFiles = fileResultsFromFolder;
+        } else {
+            console.log('❌ No folder files available for QA-QC preview');
+            return;
+        }
+    }
+    
+    if (!titleBlockData || folderFiles.length === 0) {
+        console.log('❌ Missing data for QA-QC preview:', {
+            hasTitleData: !!titleBlockData,
+            folderFilesCount: folderFiles.length
+        });
+        return;
+    }
+    
+    console.log('📊 Creating QA-QC preview...');
+    console.log('📁 Using folder files:', folderFiles.length);
+    console.log('📋 Using title block data:', titleBlockData.length);
+    
+    try {
+        // Match title block data with uploaded files
+        const qaqcTable = document.getElementById('qaqcResults');
+        if (!qaqcTable) {
+            console.error('❌ qaqcResults table element not found');
+            return;
+        }
+        
+        const previewResults = [];
+        
+        console.log('📊 Processing title block data for QA-QC preview...');
+        
+        // Show first 10 title block entries with enhanced matching
+        titleBlockData.slice(0, 10).forEach((tbData, index) => {
+            const sheetNumber = tbData.sheetNumber || '';
+            const sheetName = tbData.sheetName || '';
+            const fileName = tbData.fileName || sheetNumber || `Entry ${index + 1}`;
+            
+            // Try multiple matching strategies
+            const matchedFile = folderFiles.find(file => {
+                const lowerFileName = file.name.toLowerCase();
+                const lowerTbFile = fileName.toLowerCase();
+                const lowerSheetNum = sheetNumber.toLowerCase();
+                
+                return lowerFileName.includes(lowerTbFile) ||
+                       lowerTbFile.includes(lowerFileName) ||
+                       (sheetNumber && lowerFileName.includes(lowerSheetNum));
+            });
+            
+            previewResults.push({
+                sheetNumber: sheetNumber,
+                sheetName: sheetName,
+                fileName: fileName,
+                revCode: tbData.revisionCode || 'N/A',
+                revDate: tbData.revisionDate || 'N/A',
+                revDescription: tbData.revisionDescription || 'N/A',
+                suitability: tbData.suitabilityCode || 'N/A',
+                stage: tbData.stageDescription || 'N/A',
+                deliveryStatus: matchedFile ? 'Preview: Found' : 'Preview: Missing',
+                namingStatus: 'Preview',
+                titleBlockStatus: 'Preview',
+                comment: ''
+            });
+        });
+        
+        console.log(`📊 Generated ${previewResults.length} QA-QC preview entries`);
+        
+        qaqcTable.innerHTML = previewResults.map(result => `
+            <tr>
+                <td>${result.sheetNumber || 'N/A'}</td>
+                <td>${result.sheetName || 'N/A'}</td>
+                <td>${result.fileName}</td>
+                <td>${result.revCode}</td>
+                <td>${result.revDate}</td>
+                <td>${result.revDescription}</td>
+                <td>${result.suitability}</td>
+                <td>${result.stage}</td>
+                <td><span class="status-badge info">${result.namingStatus}</span></td>
+                <td><span class="status-badge ${result.deliveryStatus.includes('Found') ? 'info' : 'warning'}">${result.deliveryStatus}</span></td>
+                <td>
+                    <input type="text" class="comment-input" value="" placeholder="Preview mode..." 
+                           data-filename="${result.fileName}" readonly style="opacity: 0.7;">
+                </td>
+                <td><span class="status-badge info">${result.titleBlockStatus}</span></td>
+                <td>Preview Mode</td>
+            </tr>
+        `).join('');
+        
+        if (titleBlockData.length > 10) {
+            qaqcTable.innerHTML += `
+                <tr>
+                    <td colspan="5" style="text-align: center; font-style: italic; color: #666;">
+                        ... and ${titleBlockData.length - 10} more entries (click "Run Checks" for complete analysis)
+                    </td>
+                </tr>
+            `;
+        }
+        
+        console.log('✅ QA-QC preview populated');
+        
+    } catch (error) {
+        console.error('❌ Error in QA-QC preview:', error);
     }
 }
 
@@ -317,6 +1114,11 @@ async function processExcelFile(file, type) {
                 const detectionResult = autoDetectFileNameColumn(workbook);
                 if (detectionResult) {
                     console.log('✅ Auto-detection successful:', detectionResult);
+                    
+                    // Populate initial tables with detected data
+                    setTimeout(() => {
+                        populateInitialTables();
+                    }, 200);
                 } else {
                     console.log('⚠️ Auto-detection incomplete - manual selection required');
                     showNotification('� Please manually select sheet and column for File Names', 'warning');
@@ -369,6 +1171,11 @@ async function processExcelFile(file, type) {
                 // AUTO-FILL EXPECTED VALUES immediately after processing
                 setTimeout(() => {
                     autoFillExpectedValues(titleBlockData);
+                    
+                    // Populate initial tables with title block data
+                    setTimeout(() => {
+                        populateInitialTables();
+                    }, 200);
                 }, 500);
                 
             } else {
@@ -706,16 +1513,32 @@ function autoDetectFileNameColumn(workbook) {
 
 function handleSheetChange() {
     console.log('🔧 handleSheetChange called');
-    const sheetIndex = document.getElementById('registerSheetSelect').value;
+    const sheetSelect = document.getElementById('registerSheetSelect');
+    if (!sheetSelect) {
+        console.error('❌ registerSheetSelect element not found');
+        return;
+    }
+    
+    const sheetIndex = sheetSelect.value;
     console.log('Sheet index selected:', sheetIndex);
     if (sheetIndex === '') return;
     
     const workbook = window.currentRegisterWorkbook;
+    if (!workbook) {
+        console.error('❌ No register workbook available');
+        return;
+    }
+    
     const worksheet = workbook.Sheets[workbook.SheetNames[parseInt(sheetIndex)]];
     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
     
     console.log('Sheet data (first row):', jsonData[0]);
     populateColumnSelector(jsonData[0] || []);
+    
+    // Update tables immediately when sheet changes
+    setTimeout(() => {
+        populateInitialTables();
+    }, 100);
 }
 
 // NEW: Advanced Naming Pattern Analysis Function
@@ -1037,13 +1860,29 @@ function populateColumnSelector(headers) {
 
 function handleColumnChange() {
     console.log('🔧 === ENHANCED COLUMN CHANGE HANDLER ===');
-    const sheetIndex = document.getElementById('registerSheetSelect').value;
-    const columnIndex = document.getElementById('registerColumnSelect').value;
+    const sheetSelect = document.getElementById('registerSheetSelect');
+    const columnSelect = document.getElementById('registerColumnSelect');
+    
+    if (!sheetSelect || !columnSelect) {
+        console.error('❌ Required DOM elements not found:', {
+            sheetSelect: !!sheetSelect,
+            columnSelect: !!columnSelect
+        });
+        return;
+    }
+    
+    const sheetIndex = sheetSelect.value;
+    const columnIndex = columnSelect.value;
     
     console.log('Sheet index:', sheetIndex, 'Column index:', columnIndex);
     if (sheetIndex === '' || columnIndex === '') return;
     
     const workbook = window.currentRegisterWorkbook;
+    if (!workbook) {
+        console.error('❌ No register workbook available');
+        return;
+    }
+    
     const sheetName = workbook.SheetNames[parseInt(sheetIndex)];
     const worksheet = workbook.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
@@ -1060,11 +1899,13 @@ function handleColumnChange() {
     console.log(`✅ Extracted ${uniqueFileNames.length} unique file names (${columnData.length} total entries)`);
     console.log('📋 Sample file names:', uniqueFileNames.slice(0, 5));
     
+    // Calculate duplicate count for use throughout function
+    const duplicateCount = columnData.length - uniqueFileNames.length;
+    
     // Enhanced preview with statistics
     const preview = document.getElementById('configPreview');
     if (preview) {
         const previewText = uniqueFileNames.slice(0, 3).join(', ');
-        const duplicateCount = columnData.length - uniqueFileNames.length;
         const duplicateInfo = duplicateCount > 0 ? ` (${duplicateCount} duplicates removed)` : '';
         
         preview.innerHTML = `
@@ -1096,34 +1937,71 @@ function handleColumnChange() {
     
     showNotification(notification, 'success');
     
+    // Update tables immediately when column changes
+    setTimeout(() => {
+        populateInitialTables();
+    }, 100);
+    
     // Show Excel configuration with progressive disclosure
     showExcelConfiguration();
 }
 
 // Main Processing Function
 async function runAllChecks() {
-    console.log('Run Checks button clicked!');
+    console.log('🚀 === RUN ALL CHECKS INITIATED ===');
+    console.log('📊 Data availability check:');
+    console.log('  - fileResultsFromFolder length:', fileResultsFromFolder ? fileResultsFromFolder.length : 'undefined');
+    console.log('  - fileNamesFromExcel length:', fileNamesFromExcel ? fileNamesFromExcel.length : 'undefined');
+    console.log('  - uploadedFiles length:', uploadedFiles ? uploadedFiles.length : 'undefined');
+    console.log('  - titleBlockData length:', titleBlockData ? titleBlockData.length : 'undefined');
+    
     showNotification('Running quality checks...', 'info');
     
-    if (fileResultsFromFolder.length === 0 || fileNamesFromExcel.length === 0) {
-        showNotification('Please upload both folder and register file', 'warning');
+    // Enhanced validation with more detailed feedback
+    if (!fileResultsFromFolder || fileResultsFromFolder.length === 0) {
+        console.log('❌ No folder files available');
+        showNotification('❌ Please upload folder files first', 'warning');
         return;
     }
+    
+    if (!fileNamesFromExcel || fileNamesFromExcel.length === 0) {
+        console.log('❌ No Excel file names available');
+        showNotification('❌ Please upload and configure Drawing Register file', 'warning');
+        return;
+    }
+    
+    console.log('✅ Data validation passed, proceeding with checks...');
+    console.log('📁 Sample folder files:', fileResultsFromFolder.slice(0, 3).map(f => f.name));
+    console.log('📋 Sample Excel names:', fileNamesFromExcel.slice(0, 3));
 
     // Apply current filter
     const filteredFiles = applyFileFilter(fileResultsFromFolder);
+    console.log(`🔍 Applied filter, ${filteredFiles.length} files after filtering`);
     
-    // Run all checks
-    const drawingListResults = compareDrawingList(fileNamesFromExcel, filteredFiles);
-    const namingResults = checkNamingCompliance(filteredFiles);
-    const qaqcResults = checkQAQC(filteredFiles);
-    
-    // Update UI
-    updateSummaryMetrics(drawingListResults, namingResults, qaqcResults);
-    updateResultsTables(drawingListResults, namingResults, qaqcResults);
-    updateCharts(drawingListResults, namingResults, qaqcResults);
-    
-    showNotification('Quality checks completed', 'success');
+    // Run all checks with error handling
+    try {
+        const drawingListResults = compareDrawingList(fileNamesFromExcel, filteredFiles);
+        console.log('✅ Drawing List comparison completed:', drawingListResults.length, 'results');
+        
+        const namingResults = checkNamingCompliance(filteredFiles);
+        console.log('✅ Naming compliance check completed:', namingResults.length, 'results');
+        
+        const qaqcResults = checkQAQC(filteredFiles);
+        console.log('✅ QA-QC check completed:', qaqcResults.length, 'results');
+        
+        // Update UI with enhanced logging
+        console.log('🎨 Updating UI with results...');
+        updateSummaryMetrics(drawingListResults, namingResults, qaqcResults);
+        updateResultsTables(drawingListResults, namingResults, qaqcResults);
+        updateCharts(drawingListResults, namingResults, qaqcResults);
+        
+        showNotification('✅ Quality checks completed successfully', 'success');
+        console.log('🎉 All checks completed successfully');
+        
+    } catch (error) {
+        console.error('❌ Error during checks:', error);
+        showNotification('❌ Error during quality checks: ' + error.message, 'error');
+    }
 }
 
 // Comparison Functions (from legacy apps)
@@ -1501,6 +2379,13 @@ function checkQAQC(files) {
                     issues.push(`Rev Desc: expected "${expectedValues.revisionDesc}", got "${actualValues.revisionDescription}"`);
                 }
                 
+                // Check for manual comment - if comment exists, fail the title block
+                const userComment = commentsData[file.name];
+                if (userComment && userComment.trim()) {
+                    issues.push(`Manual comment: ${userComment.trim()}`);
+                    console.log(`❌ Manual comment found for ${file.name}: "${userComment.trim()}" - failing title block`);
+                }
+                
                 return {
                     sheetNumber: titleRecord.sheetNumber || 'N/A',
                     sheetName: titleRecord.sheetName || 'N/A',
@@ -1515,6 +2400,15 @@ function checkQAQC(files) {
                 };
             } else {
                 console.log('❌ No matching title record found');
+                
+                // Check for manual comment even when no title block data
+                const userComment = commentsData[file.name];
+                let failureReason = 'No title block data found for this file';
+                if (userComment && userComment.trim()) {
+                    failureReason += `; Manual comment: ${userComment.trim()}`;
+                    console.log(`❌ Manual comment found for ${file.name}: "${userComment.trim()}"`);
+                }
+                
                 return {
                     sheetNumber: sheetNumber || 'N/A',
                     sheetName: 'N/A', 
@@ -1525,11 +2419,20 @@ function checkQAQC(files) {
                     suitability: 'N/A',
                     stage: 'N/A',
                     result: 'FAIL',
-                    issues: 'No title block data found for this file'
+                    issues: failureReason
                 };
             }
         } else {
             console.log('❌ No title block data loaded');
+            
+            // Check for manual comment even when no title block data loaded
+            const userComment = commentsData[file.name];
+            let failureReason = 'No title block data loaded';
+            if (userComment && userComment.trim()) {
+                failureReason += `; Manual comment: ${userComment.trim()}`;
+                console.log(`❌ Manual comment found for ${file.name}: "${userComment.trim()}"`);
+            }
+            
             return {
                 sheetNumber: sheetNumber || 'N/A',
                 sheetName: 'N/A',
@@ -1540,7 +2443,7 @@ function checkQAQC(files) {
                 suitability: 'N/A',
                 stage: 'N/A',
                 result: 'FAIL',
-                issues: 'No title block data loaded'
+                issues: failureReason
             };
         }
     });
@@ -1569,67 +2472,171 @@ function updateMetricColor(elementId, colorClass) {
 }
 
 function updateResultsTables(drawingResults, namingResults, qaqcResults) {
-    // Update Drawing List table
+    console.log('🎨 === UPDATING RESULTS TABLES ===');
+    console.log('📊 Drawing results length:', drawingResults ? drawingResults.length : 'undefined');
+    console.log('📝 Naming results length:', namingResults ? namingResults.length : 'undefined');
+    console.log('📋 QA-QC results length:', qaqcResults ? qaqcResults.length : 'undefined');
+    
+    // Update Drawing List table with validation
     const drawingTable = document.getElementById('drawingListResults');
-    drawingTable.innerHTML = drawingResults.map(result => `
-        <tr>
-            <td>${result.excelName}</td>
-            <td>${result.matchedFile}</td>
-            <td><span class="status-badge ${getStatusClass(result.status)}">${result.status}</span></td>
-        </tr>
-    `).join('');
-    
-    // Update Naming table
-    const namingTable = document.getElementById('namingResults');
-    namingTable.innerHTML = namingResults.map(result => `
-        <tr>
-            <td>${result.folderPath}</td>
-            <td>${result.highlightedFileName || result.fileName}</td>
-            <td><span class="status-badge ${result.status === 'Ok' ? 'success' : result.status === 'OK' ? 'success' : result.status === 'WARNING' ? 'warning' : 'error'}">${result.status}</span></td>
-            <td>${result.details}</td>
-        </tr>
-    `).join('');
-    
-    // Update QA-QC table
-    const qaqcTable = document.getElementById('qaqcResults');
-    console.log('=== UPDATING QA-QC TABLE ===');
-    console.log('titleBlockData in table update:', titleBlockData);
-    console.log('titleBlockData length:', titleBlockData ? titleBlockData.length : 'undefined');
-    
-    qaqcTable.innerHTML = qaqcResults.map(result => {
-        console.log('Processing QA-QC result for file:', result.fileName);
-        console.log('Result data:', result);
-        
-        // Check if revision code has validation issues
-        const hasRevisionError = result.issues && result.issues.includes('Rev Code:');
-        const revCodeClass = hasRevisionError ? 'revision-error' : '';
-        
-        // Get naming status from naming checker results
-        const namingResult = namingResults.find(nr => nr.fileName === result.fileName);
-        const namingStatus = namingResult ? namingResult.status : 'Unknown';
-        const namingStatusClass = namingStatus === 'Ok' ? 'success' : 
-                                namingStatus === 'Warning' ? 'warning' : 'error';
-        
-        const deliveryStatus = 'Delivered'; // Since file exists in folder
-        
-        return `
+    if (drawingTable && drawingResults) {
+        console.log('✅ Updating Drawing List table...');
+        drawingTable.innerHTML = drawingResults.map(result => `
             <tr>
-                <td>${result.sheetNumber}</td>
-                <td>${result.sheetName}</td>
-                <td>${result.fileName}</td>
-                <td class="${revCodeClass}">${result.revCode}</td>
-                <td>${result.revDate}</td>
-                <td>${result.revDescription}</td>
-                <td>${result.suitability}</td>
-                <td>${result.stage}</td>
-                <td><span class="status-badge ${namingStatusClass}">${namingStatus}</span></td>
-                <td><span class="status-badge success">${deliveryStatus}</span></td>
-                <td></td>
-                <td><span class="status-badge success">${result.result === 'PASS' ? 'PASS' : ''}</span></td>
-                <td>${result.issues}</td>
+                <td>${result.excelName || 'N/A'}</td>
+                <td>${result.matchedFile || 'N/A'}</td>
+                <td><span class="status-badge ${getStatusClass(result.status)}">${result.status || 'Unknown'}</span></td>
             </tr>
-        `;
-    }).join('');
+        `).join('');
+        console.log(`📊 Drawing List table populated with ${drawingResults.length} rows`);
+    } else {
+        console.log('❌ Drawing List table update failed:', {
+            hasTable: !!drawingTable,
+            hasResults: !!drawingResults
+        });
+    }
+    
+    // Update Naming table with validation
+    const namingTable = document.getElementById('namingResults');
+    if (namingTable && namingResults) {
+        console.log('✅ Updating Naming table...');
+        namingTable.innerHTML = namingResults.map(result => `
+            <tr>
+                <td>${result.folderPath || 'N/A'}</td>
+                <td>${result.highlightedFileName || result.fileName || 'N/A'}</td>
+                <td><span class="status-badge ${result.status === 'Ok' ? 'success' : result.status === 'OK' ? 'success' : result.status === 'WARNING' ? 'warning' : 'error'}">${result.status || 'Unknown'}</span></td>
+                <td>${result.details || 'N/A'}</td>
+            </tr>
+        `).join('');
+        console.log(`📝 Naming table populated with ${namingResults.length} rows`);
+    } else {
+        console.log('❌ Naming table update failed:', {
+            hasTable: !!namingTable,
+            hasResults: !!namingResults
+        });
+    }
+    
+    // Update QA-QC table with enhanced validation
+    const qaqcTable = document.getElementById('qaqcResults');
+    if (qaqcTable && qaqcResults) {
+        console.log('✅ Updating QA-QC table...');
+        console.log('titleBlockData in table update:', titleBlockData);
+        console.log('titleBlockData length:', titleBlockData ? titleBlockData.length : 'undefined');
+    
+        qaqcTable.innerHTML = qaqcResults.map(result => {
+            console.log('Processing QA-QC result for file:', result.fileName);
+            console.log('Result data:', result);
+            
+            // Check if revision code has validation issues
+            const hasRevisionError = result.issues && result.issues.includes('Rev Code:');
+            const revCodeClass = hasRevisionError ? 'revision-error' : '';
+            
+            // Get naming status from naming checker results
+            const namingResult = namingResults.find(nr => nr.fileName === result.fileName);
+            const namingStatus = namingResult ? namingResult.status : 'Unknown';
+            const namingStatusClass = namingStatus === 'Ok' ? 'success' : 
+                                    namingStatus === 'Warning' ? 'warning' : 'error';
+            
+            const deliveryStatus = 'Delivered'; // Since file exists in folder
+            
+            // Get existing comment for this file
+            const existingComment = commentsData[result.fileName] || '';
+            
+            return `
+                <tr>
+                    <td>${result.sheetNumber || 'N/A'}</td>
+                    <td>${result.sheetName || 'N/A'}</td>
+                    <td>${result.fileName || 'N/A'}</td>
+                    <td class="${revCodeClass}">${result.revCode || 'N/A'}</td>
+                    <td>${result.revDate || 'N/A'}</td>
+                    <td>${result.revDescription || 'N/A'}</td>
+                    <td>${result.suitability || 'N/A'}</td>
+                    <td>${result.stage || 'N/A'}</td>
+                    <td><span class="status-badge ${namingStatusClass}">${namingStatus}</span></td>
+                    <td><span class="status-badge success">${deliveryStatus}</span></td>
+                    <td><input type="text" class="comment-input" placeholder="Add comment..." value="${existingComment}"></td>
+                    <td><span class="status-badge ${result.result === 'PASS' ? 'success' : result.result === 'FAIL' ? 'error' : 'warning'}">${result.result || 'Unknown'}</span></td>
+                    <td>${result.issues || 'N/A'}</td>
+                </tr>
+            `;
+        }).join('');
+        
+        console.log(`📋 QA-QC table populated with ${qaqcResults.length} rows`);
+    } else {
+        console.log('❌ QA-QC table update failed:', {
+            hasTable: !!qaqcTable,
+            hasResults: !!qaqcResults
+        });
+    }
+    
+    // Ensure comment inputs are interactive
+    setTimeout(() => {
+        setupCommentInputs();
+    }, 100);
+}
+
+// Setup comment inputs to ensure they're interactive
+function setupCommentInputs() {
+    const commentInputs = document.querySelectorAll('.comment-input');
+    console.log(`Setting up ${commentInputs.length} comment inputs`);
+    
+    commentInputs.forEach((input, index) => {
+        // Ensure the input is focusable and interactive
+        input.tabIndex = 0;
+        input.style.pointerEvents = 'auto';
+        input.style.zIndex = '10';
+        
+        // Get the file name from the row
+        const row = input.closest('tr');
+        const fileNameCell = row?.cells[2]; // File Name is the 3rd column (index 2)
+        const fileName = fileNameCell?.textContent?.trim();
+        
+        if (fileName) {
+            // Restore any existing comment
+            if (commentsData[fileName]) {
+                input.value = commentsData[fileName];
+            }
+            
+            // Add event listeners for better interaction
+            input.addEventListener('focus', function(e) {
+                console.log(`Comment input ${index} focused for file: ${fileName}`);
+                e.stopPropagation();
+                this.style.borderColor = '#3b82f6';
+                this.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                this.style.zIndex = '20';
+            });
+            
+            input.addEventListener('blur', function() {
+                this.style.borderColor = '#e2e8f0';
+                this.style.boxShadow = 'none';
+                this.style.zIndex = '10';
+            });
+            
+            input.addEventListener('input', function() {
+                console.log(`Comment input ${index} changed for ${fileName}:`, this.value);
+                // Store the comment
+                commentsData[fileName] = this.value.trim();
+                
+                // Trigger re-evaluation of title block if comment added/removed
+                if (this.value.trim()) {
+                    console.log(`Comment added for ${fileName}, will fail title block`);
+                } else {
+                    console.log(`Comment removed for ${fileName}, will re-evaluate title block`);
+                }
+            });
+            
+            // Prevent row click from interfering
+            input.addEventListener('click', function(e) {
+                console.log(`Comment input ${index} clicked for file: ${fileName}`);
+                e.stopPropagation();
+                this.focus();
+            });
+            
+            input.addEventListener('mousedown', function(e) {
+                e.stopPropagation();
+            });
+        }
+    });
 }
 
 function getStatusClass(status) {
@@ -1744,7 +2751,8 @@ function updateFileStatus(elementId, text, type) {
 }
 
 function applyFileFilter(files) {
-    const filter = document.getElementById('fileTypeFilter').value;
+    const filterElement = document.getElementById('fileTypeFilter');
+    const filter = filterElement ? filterElement.value : 'all';
     
     switch (filter) {
         case 'pdf':
@@ -2026,7 +3034,8 @@ function handleSearch() {
 }
 
 function handleFilterChange() {
-    currentFilter = document.getElementById('fileTypeFilter').value;
+    const filterElement = document.getElementById('fileTypeFilter');
+    currentFilter = filterElement ? filterElement.value : 'all';
     // Re-run checks if files are already loaded
     if (fileResultsFromFolder.length > 0 && fileNamesFromExcel.length > 0) {
         runAllChecks();

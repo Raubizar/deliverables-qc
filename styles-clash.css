@@ -531,10 +531,21 @@ input[type="file"] {
     padding: 4px 8px;
     border-bottom: 1px solid #f1f5f9;
     vertical-align: middle;
+    position: relative;
+}
+
+/* Ensure comment input cells don't interfere with row hover */
+.modern-table td:has(.comment-input) {
+    padding: 2px 4px;
 }
 
 .modern-table tbody tr:hover {
     background: #f8fafc;
+}
+
+.modern-table tbody tr:hover .comment-input {
+    background: white;
+    border-color: #3b82f6;
 }
 
 .modern-table tbody tr:nth-child(even) {
@@ -543,6 +554,41 @@ input[type="file"] {
 
 .modern-table tbody tr:nth-child(even):hover {
     background: #f8fafc;
+}
+
+/* Comment Input in Tables */
+.comment-input {
+    width: 100%;
+    max-width: 150px;
+    padding: 4px 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 3px;
+    font-size: 10px;
+    background: white;
+    transition: all 0.15s ease;
+    box-sizing: border-box;
+    cursor: text;
+    z-index: 10;
+    position: relative;
+    min-height: 22px;
+}
+
+.comment-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    background: #fff;
+    z-index: 20;
+}
+
+.comment-input:hover {
+    border-color: #94a3b8;
+    background: #fff;
+}
+
+.comment-input::placeholder {
+    color: #9ca3af;
+    font-style: italic;
 }
 
 /* Status Badges - Compact */
