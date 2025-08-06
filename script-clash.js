@@ -1188,9 +1188,9 @@ function populateQAQCPreview(folderFiles = null) {
         
         qaqcTable.innerHTML = previewResults.map(result => `
             <tr>
-                <td>${result.sheetNumber || 'N/A'}</td>
+                <td class="wrap-text">${result.sheetNumber || 'N/A'}</td>
                 <td>${result.sheetName || 'N/A'}</td>
-                <td>${result.fileName}</td>
+                <td class="wrap-text">${result.fileName}</td>
                 <td>${result.revCode}</td>
                 <td>${result.revDate}</td>
                 <td>${result.revDescription}</td>
@@ -1203,14 +1203,15 @@ function populateQAQCPreview(folderFiles = null) {
                            data-filename="${result.fileName}" readonly style="opacity: 0.7;">
                 </td>
                 <td><span class="status-badge info">${result.titleBlockStatus}</span></td>
-                <td>Preview Mode</td>
+                <td><span class="status-badge info">Preview Mode</span></td>
+                <td class="details-text">Preview data - run checks for detailed analysis</td>
             </tr>
         `).join('');
         
         if (titleBlockData.length > 10) {
             qaqcTable.innerHTML += `
                 <tr>
-                    <td colspan="5" style="text-align: center; font-style: italic; color: #666;">
+                    <td colspan="14" style="text-align: center; font-style: italic; color: #666;">
                         ... and ${titleBlockData.length - 10} more entries (click "Run Checks" for complete analysis)
                     </td>
                 </tr>
@@ -2268,7 +2269,8 @@ function createNotVerifiedResults(files, type) {
                     deliveryStatus: 'Not verified',
                     comment: '',
                     titleBlockStatus: 'Not verified',
-                    complianceStatus: 'Not verified'
+                    complianceStatus: 'Not verified',
+                    complianceDetails: 'No data available for validation'
                 }];
             default:
                 return [];
@@ -2307,7 +2309,8 @@ function createNotVerifiedResults(files, type) {
                     deliveryStatus: 'Not verified',
                     comment: '',
                     titleBlockStatus: 'Not verified',
-                    complianceStatus: 'Not verified'
+                    complianceStatus: 'Not verified',
+                    complianceDetails: 'No data source available for validation'
                 };
             default:
                 return {};
@@ -2692,9 +2695,16 @@ function checkQAQC(files) {
         
         // Determine naming status from naming results
         let namingStatus = 'Not verified';
+        let namingAnalysis = null;
         if (namingRulesData && namingRulesData.Sheets && namingRulesData.Sheets.length > 0) {
-            const namingAnalysis = analyzeFileNameAgainstRules(file.name);
-            namingStatus = namingAnalysis.compliance === 'Ok' ? 'Compliant' : 'Non-compliant';
+            namingAnalysis = analyzeFileNameAgainstRules(file.name);
+            if (namingAnalysis.compliance === 'Ok') {
+                namingStatus = 'Compliant';
+            } else if (namingAnalysis.compliance === 'Wrong') {
+                namingStatus = 'Non-compliant';
+            } else {
+                namingStatus = 'Not verified'; // For 'No Rules' or other statuses
+            }
         }
         
         // Determine delivery status - file exists in folder so it's delivered
@@ -2702,6 +2712,7 @@ function checkQAQC(files) {
         
         let titleRecord = null;
         let titleBlockStatus = 'Not verified';
+        let titleBlockIssues = [];
         
         if (titleBlockData && titleBlockData.length > 0) {
             console.log('Available title block records:');
@@ -2765,34 +2776,46 @@ function checkQAQC(files) {
                     actualValues.revisionCode !== 'N/A') {
                     const revisionValidation = compareRevisionCodes(expectedValues.revisionCode, actualValues.revisionCode);
                     if (!revisionValidation.valid) {
-                        issues.push(`Rev Code: ${revisionValidation.reason} (expected >= "${expectedValues.revisionCode}", got "${actualValues.revisionCode}")`);
+                        const issueDetail = `Rev Code: expected >= "${expectedValues.revisionCode}", got "${actualValues.revisionCode}"`;
+                        issues.push(issueDetail);
+                        titleBlockIssues.push(issueDetail);
                     }
                 }
                 
                 if (expectedValues.revisionDate && 
                     normalizeDate(actualValues.revisionDate) !== normalizeDate(expectedValues.revisionDate)) {
-                    issues.push(`Rev Date: expected "${expectedValues.revisionDate}", got "${actualValues.revisionDate}"`);
+                    const issueDetail = `Rev Date: expected "${expectedValues.revisionDate}", got "${actualValues.revisionDate}"`;
+                    issues.push(issueDetail);
+                    titleBlockIssues.push(issueDetail);
                 }
                 
                 if (expectedValues.suitability && 
                     normalizeText(actualValues.suitabilityCode) !== normalizeText(expectedValues.suitability)) {
-                    issues.push(`Suitability: expected "${expectedValues.suitability}", got "${actualValues.suitabilityCode}"`);
+                    const issueDetail = `Suitability: expected "${expectedValues.suitability}", got "${actualValues.suitabilityCode}"`;
+                    issues.push(issueDetail);
+                    titleBlockIssues.push(issueDetail);
                 }
                 
                 if (expectedValues.stage && 
                     normalizeText(actualValues.stageDescription) !== normalizeText(expectedValues.stage)) {
-                    issues.push(`Stage: expected "${expectedValues.stage}", got "${actualValues.stageDescription}"`);
+                    const issueDetail = `Stage: expected "${expectedValues.stage}", got "${actualValues.stageDescription}"`;
+                    issues.push(issueDetail);
+                    titleBlockIssues.push(issueDetail);
                 }
                 
                 if (expectedValues.revisionDesc && 
                     normalizeText(actualValues.revisionDescription) !== normalizeText(expectedValues.revisionDesc)) {
-                    issues.push(`Rev Desc: expected "${expectedValues.revisionDesc}", got "${actualValues.revisionDescription}"`);
+                    const issueDetail = `Rev Desc: expected "${expectedValues.revisionDesc}", got "${actualValues.revisionDescription}"`;
+                    issues.push(issueDetail);
+                    titleBlockIssues.push(issueDetail);
                 }
                 
                 // Check for manual comment - if comment exists, fail the title block
                 const userComment = commentsData[file.name];
                 if (userComment && userComment.trim()) {
-                    issues.push(`Manual comment: ${userComment.trim()}`);
+                    const commentIssue = `Manual comment: ${userComment.trim()}`;
+                    issues.push(commentIssue);
+                    titleBlockIssues.push(commentIssue);
                     console.log(`❌ Manual comment found for ${file.name}: "${userComment.trim()}" - failing title block`);
                 }
                 
@@ -2801,6 +2824,9 @@ function checkQAQC(files) {
                 
                 // Calculate compliance status based on all three criteria
                 const complianceStatus = calculateComplianceStatus(namingStatus, deliveryStatus, titleBlockStatus);
+                
+                // Generate detailed explanation with specific issues
+                const complianceDetails = generateComplianceDetails(namingStatus, deliveryStatus, titleBlockStatus, complianceStatus, file, namingAnalysis, titleBlockIssues);
                 
                 return {
                     sheetNumber: titleRecord.sheetNumber || 'N/A',
@@ -2816,6 +2842,7 @@ function checkQAQC(files) {
                     comment: userComment || '',
                     titleBlockStatus: titleBlockStatus,
                     complianceStatus: complianceStatus,
+                    complianceDetails: complianceDetails,
                     result: issues.length === 0 ? 'PASS' : 'FAIL',
                     issues: issues.length > 0 ? issues.join('; ') : 'None'
                 };
@@ -2835,6 +2862,9 @@ function checkQAQC(files) {
                 // Calculate compliance status based on all three criteria
                 const complianceStatus = calculateComplianceStatus(namingStatus, deliveryStatus, titleBlockStatus);
                 
+                // Generate detailed explanation with specific issues
+                const complianceDetails = generateComplianceDetails(namingStatus, deliveryStatus, titleBlockStatus, complianceStatus, file, namingAnalysis, []);
+                
                 return {
                     sheetNumber: sheetNumber || 'N/A',
                     sheetName: 'N/A', 
@@ -2849,6 +2879,7 @@ function checkQAQC(files) {
                     comment: userComment || '',
                     titleBlockStatus: titleBlockStatus,
                     complianceStatus: complianceStatus,
+                    complianceDetails: complianceDetails,
                     result: 'FAIL',
                     issues: failureReason
                 };
@@ -2869,6 +2900,9 @@ function checkQAQC(files) {
             // Calculate compliance status based on all three criteria
             const complianceStatus = calculateComplianceStatus(namingStatus, deliveryStatus, titleBlockStatus);
             
+            // Generate detailed explanation with specific issues
+            const complianceDetails = generateComplianceDetails(namingStatus, deliveryStatus, titleBlockStatus, complianceStatus, file, namingAnalysis, []);
+            
             return {
                 sheetNumber: sheetNumber || 'N/A',
                 sheetName: 'N/A',
@@ -2883,6 +2917,7 @@ function checkQAQC(files) {
                 comment: userComment || '',
                 titleBlockStatus: titleBlockStatus,
                 complianceStatus: complianceStatus,
+                complianceDetails: complianceDetails,
                 result: 'FAIL',
                 issues: failureReason
             };
@@ -2917,6 +2952,41 @@ function calculateComplianceStatus(namingStatus, deliveryStatus, titleBlockStatu
     // All positive -> Approved
     console.log('Compliance: Approved (all criteria compliant)');
     return 'Approved';
+}
+
+// Helper function to generate detailed explanation for compliance status
+function generateComplianceDetails(namingStatus, deliveryStatus, titleBlockStatus, complianceStatus, file, namingAnalysis, titleBlockIssues) {
+    const detailParts = [];
+    
+    // 1. NAMING DETAILS - Specific part validation issues
+    if (namingStatus === 'Non-compliant' && namingAnalysis) {
+        detailParts.push(`NAMING: ${namingAnalysis.details}`);
+    } else if (namingStatus === 'Compliant') {
+        detailParts.push('NAMING: All parts compliant with convention');
+    } else if (namingStatus === 'Not verified') {
+        detailParts.push('NAMING: No naming rules loaded for validation');
+    }
+    
+    // 2. DELIVERY DETAILS - Specific delivery status
+    if (deliveryStatus === 'Delivered') {
+        detailParts.push('DELIVERY: File present in folder');
+    } else if (deliveryStatus === 'Missing') {
+        detailParts.push('DELIVERY: File not found in delivery folder');
+    } else if (deliveryStatus === 'Not verified') {
+        detailParts.push('DELIVERY: Drawing list not loaded for comparison');
+    }
+    
+    // 3. TITLE BLOCK DETAILS - Specific validation failures
+    if (titleBlockStatus === 'Non-compliant' && titleBlockIssues && titleBlockIssues.length > 0) {
+        detailParts.push(`TITLE BLOCK: ${titleBlockIssues.join(', ')}`);
+    } else if (titleBlockStatus === 'Compliant') {
+        detailParts.push('TITLE BLOCK: All fields match expected values');
+    } else if (titleBlockStatus === 'Not verified') {
+        detailParts.push('TITLE BLOCK: No title block data loaded for validation');
+    }
+    
+    // Join all parts with line breaks for multi-line display
+    return detailParts.join(' | ');
 }
 
 // EMERGENCY TOOLS - Call these manually if comments disappear
@@ -3110,9 +3180,9 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
             
             return `
                 <tr>
-                    <td>${result.sheetNumber || 'N/A'}</td>
+                    <td class="wrap-text">${result.sheetNumber || 'N/A'}</td>
                     <td>${result.sheetName || 'N/A'}</td>
-                    <td>${result.fileName || 'N/A'}</td>
+                    <td class="wrap-text">${result.fileName || 'N/A'}</td>
                     <td class="${revCodeClass}">${result.revCode || 'N/A'}</td>
                     <td>${result.revDate || 'N/A'}</td>
                     <td>${result.revDescription || 'N/A'}</td>
@@ -3123,6 +3193,7 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
                     <td><input type="text" class="comment-input" placeholder="Add comment..." value="${existingComment}" data-file-name="${result.fileName}"></td>
                     <td><span class="status-badge ${titleBlockStatusClass}">${titleBlockStatus}</span></td>
                     <td><span class="status-badge ${complianceStatusClass}">${complianceStatus}</span></td>
+                    <td class="details-text">${result.complianceDetails || 'No details available'}</td>
                 </tr>
             `;
         }).join('');
