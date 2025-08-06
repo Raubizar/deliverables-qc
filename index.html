@@ -20,7 +20,8 @@
         </header>
 
         <!-- Main Layout -->
-        <main class="main-layout">
+        <div class="container">
+            <main class="main-layout">
             
             <!-- Left Panel: Controls -->
             <div class="column-1">
@@ -132,7 +133,7 @@
                             </label>
                         </div>
                     </div>
-                </div>
+                </section>
 
             </div>
 
@@ -140,46 +141,46 @@
             <div class="column-3">
                 
                 <!-- Summary Section -->
-                <div class="summary-section">
+                <section class="summary-section">
                     <h2>Summary</h2>
                     
                     <div class="summary-grid">
                         <!-- Delivered -->
                         <article class="card">
                             <h2>Delivered</h2>
-                            <div class="chart-container">
-                                <canvas id="deliveredChart"></canvas>
+                            <div class="chart-container" id="deliveredChart">
+                                <!-- SVG donut will be inserted here -->
                             </div>
                         </article>
 
                         <!-- Naming Compliance -->
                         <article class="card">
                             <h2>Naming Compliance</h2>
-                            <div class="chart-container">
-                                <canvas id="namingComplianceChart"></canvas>
+                            <div class="chart-container" id="namingComplianceChart">
+                                <!-- SVG donut will be inserted here -->
                             </div>
                         </article>
 
                         <!-- Title Block Information Compliance -->
                         <article class="card">
                             <h2>Title Block Compliance</h2>
-                            <div class="chart-container">
-                                <canvas id="titleBlockComplianceChart"></canvas>
+                            <div class="chart-container" id="titleBlockComplianceChart">
+                                <!-- SVG donut will be inserted here -->
                             </div>
                         </article>
 
                         <!-- Overall QC Score -->
                         <article class="card">
                             <h2>Overall QC Score</h2>
-                            <div class="chart-container">
-                                <canvas id="overallQCChart"></canvas>
+                            <div class="chart-container" id="overallQCChart">
+                                <!-- SVG donut will be inserted here -->
                             </div>
                         </article>
                     </div>
-                </div>
+                </section>
 
-                <!-- Results Section -->
-                <div class="results-section">
+                <!-- Detailed Results Section -->
+                <section class="results-section">
                     <div class="results-header">
                         <h2>Detailed Results</h2>
                         <div class="results-controls">
@@ -265,6 +266,7 @@
                 </div>
             </div>
         </main>
+        </div>
     </div>
 
     <script src="script-clash.js"></script>

@@ -14,6 +14,13 @@ body {
     overflow-x: hidden;
 }
 
+/* Global Container */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 16px;
+}
+
 /* Header */
 .app-header {
     background: white;
@@ -248,24 +255,20 @@ input[type="file"] {
     gap: 16px;
 }
 
-/* Summary Cards - New Layout */
+/* Summary Cards - Clean Layout */
 .summary-section {
     background: white;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     padding: 16px;
-    margin-bottom: 12px;
-    height: 200px; /* Half the previous height */
+    margin-bottom: 16px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .summary-section h2 {
     font-size: 16px;
-    font-weight: 600;
     margin-bottom: 12px;
-    color: #1e293b;
-    border-bottom: 1px solid #e2e8f0;
-    padding-bottom: 6px;
+    color: #1f2937;
 }
 
 /* CSS Variables */
@@ -274,52 +277,86 @@ input[type="file"] {
     --warn-orange: #f97316;
     --danger-red: #ef4444;
     --neutral-gray: #e5e7eb;
+    
+    /* Layout variables */
+    --card-bg: #ffffff;
+    --section-spacing: 2rem;
+    --card-border-radius: 0.75rem;
+    --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
+    
+    /* Typography */
+    --heading-color: #1f2937;
+    --text-color: #374151;
+    --text-muted: #6b7280;
 }
 
-/* Summary Grid - Responsive Cards */
+/* Summary Section - Compact and Contained */
+.summary-section {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.summary-section h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 1rem 0;
+    text-align: center;
+}
+
+/* Summary Grid - FORCED 4-column layout */
 .summary-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1rem;
-    height: calc(100% - 50px); /* Account for header */
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 0.75rem !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
 }
 
-/* Summary Cards - Full width within grid */
+/* Summary Cards - Compact Size */
 .card {
     width: 100%;
-    height: 140px;
-    background: var(--card-bg, #fff);
+    height: 120px;
+    background: white;
     border: 1px solid #e2e8f0;
-    border-radius: 0.75rem;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     position: relative;
-    padding: 1rem 0.75rem;
+    padding: 0.75rem 0.5rem;
     transition: transform 0.2s ease;
 }
 
 .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .card h2 {
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin: 0 0 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem;
     color: #374151;
     text-align: center;
+    line-height: 1.1;
 }
 
 /* Legacy summary-card styles removed - using .card instead */
 
 /* Chart Container - Now for SVG donuts */
 .chart-container {
-    width: 86px;
-    height: 86px;
+/* Chart container - compact size */
+.chart-container {
+    width: 60px;
+    height: 60px;
     margin: 0 auto;
     position: relative;
     display: flex;
@@ -327,29 +364,30 @@ input[type="file"] {
     align-items: center;
 }
 
+/* Donut SVG container - smaller */
 .donut {
-    width: 86px;
-    height: 86px;
+    width: 60px;
+    height: 60px;
     position: relative;
 }
 
 .donut svg {
-    width: 86px;
-    height: 86px;
+    width: 60px;
+    height: 60px;
     transform: rotate(-90deg);
 }
 
-/* Value overlay - positioned over donut center */
+/* Value overlay - smaller text */
 .value {
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    font-size: 2rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.4rem;
     font-weight: 700;
     color: #1e293b;
     line-height: 1;
-    z-index: 10 !important;
+    z-index: 10;
     pointer-events: none;
     text-align: center;
 }
@@ -357,6 +395,76 @@ input[type="file"] {
 .chart-container canvas {
     width: 100% !important;
     height: 100% !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .summary-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+    }
+    
+    .card {
+        height: 120px;
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .card h2 {
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .value {
+        font-size: 1.75rem;
+    }
+    
+    .chart-container, .donut {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .donut svg {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .summary-section {
+        margin-bottom: 1.5rem;
+    }
+    
+    .results-section {
+        margin-top: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+    
+    .card {
+        height: 100px;
+        padding: 0.5rem;
+    }
+    
+    .card h2 {
+        font-size: 0.75rem;
+    }
+    
+    .value {
+        font-size: 1.5rem;
+    }
+    
+    .chart-container, .donut {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .donut svg {
+        width: 60px;
+        height: 60px;
+    }
 }
 
 /* Summary Metrics - Hidden for new overlay design */
@@ -378,15 +486,33 @@ input[type="file"] {
     font-weight: 500;
 }
 
-/* Results Section - Extended */
+/* Results Section - Clean separation */
 .results-section {
     background: white;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     padding: 16px;
-    height: 600px; /* Increased from 400px */
+    height: 600px;
     display: flex;
     flex-direction: column;
+    margin-top: 1rem;
+    clear: both;
+}
+
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.results-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
 }
 
 .chart-container {
