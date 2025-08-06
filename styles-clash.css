@@ -268,25 +268,75 @@ input[type="file"] {
     padding-bottom: 6px;
 }
 
-/* Summary Grid - 4 columns */
+/* CSS Variables */
+:root {
+    --success-green: #10b981;
+    --warn-orange: #f97316;
+    --danger-red: #ef4444;
+    --neutral-gray: #e5e7eb;
+}
+
+/* Summary Grid - Responsive Cards */
 .summary-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
     height: calc(100% - 50px); /* Account for header */
 }
 
-/* Summary Cards */
-.summary-card {
+/* Summary Cards - New Structure */
+.card {
     background: #f8fafc;
     border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    padding: 12px;
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    width: 240px;
+    height: 140px;
     text-align: center;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
+    align-items: center;
     transition: transform 0.2s ease;
+    position: relative;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.card .txt h2 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #1e293b;
+    line-height: 1.2;
+}
+
+.card .txt {
+    position: absolute;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+}
+
+/* Legacy summary-card styles for compatibility */
+.summary-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    width: 240px;
+    height: 140px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.2s ease;
+    position: relative;
 }
 
 .summary-card:hover {
@@ -295,19 +345,47 @@ input[type="file"] {
 }
 
 .summary-card h4 {
-    font-size: 11px;
+    font-size: 0.9rem;
     font-weight: 600;
     margin-bottom: 8px;
     color: #1e293b;
     line-height: 1.2;
 }
 
-/* Chart Container */
+/* Chart Container - Now for SVG donuts */
 .chart-container {
-    width: 120px;
-    height: 120px;
-    margin: 8px auto 12px;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto;
     position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.donut {
+    position: relative;
+}
+
+.donut svg {
+    width: 80px;
+    height: 80px;
+    transform: rotate(-90deg);
+}
+
+/* Value overlay - positioned over donut center */
+.value {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    font-size: 2.1rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1;
+    z-index: 10 !important;
+    pointer-events: none;
+    text-align: center;
 }
 
 .chart-container canvas {
@@ -315,14 +393,13 @@ input[type="file"] {
     height: 100% !important;
 }
 
-/* Summary Metrics */
+/* Summary Metrics - Hidden for new overlay design */
 .summary-metrics {
-    margin-top: auto;
-    padding-top: 8px;
+    display: none; /* Will use overlay value instead */
 }
 
 .metric-value {
-    font-size: 20px;
+    font-size: 2.1rem;
     font-weight: 700;
     color: #1e293b;
     line-height: 1;

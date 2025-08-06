@@ -807,7 +807,11 @@ function initializeEventListeners() {
 
         // Tab navigation
         document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => switchTab(e.target.dataset.tab));
+            btn.addEventListener('click', (e) => {
+                if (e.target && e.target.dataset && e.target.dataset.tab) {
+                    switchTab(e.target.dataset.tab);
+                }
+            });
         });
 
         // Export functionality - use the correct ID
@@ -1622,12 +1626,20 @@ function handleTitleBlocksFile(event) {
 // Progressive Disclosure Functions
 function showExcelConfiguration() {
     const config = document.getElementById('excelConfig');
+    if (!config) {
+        console.warn('⚠️ excelConfig element not found');
+        return;
+    }
     config.style.display = 'block';
     config.classList.add('fade-in');
 }
 
 function showExpectedValues() {
     const values = document.getElementById('expectedValues');
+    if (!values) {
+        console.warn('⚠️ expectedValues element not found');
+        return;
+    }
     values.style.display = 'block';
     values.classList.add('fade-in');
     
@@ -3576,83 +3588,48 @@ function updateSummaryMetrics(drawingResults, namingResults, qaqcResults) {
         qc: { total: qcTotal, approved: qcApproved, percent: qcPercent }
     });
     
-    // UPDATE UI ELEMENTS
+    // UPDATE UI ELEMENTS - Using new card structure
     
-    // Delivered
+    // Update the value overlays directly
+    // Since we're now creating overlays dynamically, we need to find them via the container
+    updateCardValue('deliveredChart', deliveredPercent);
+    updateCardValue('namingComplianceChart', namingPercent);
+    updateCardValue('titleBlockComplianceChart', titleBlockPercent);
+    updateCardValue('overallQCChart', qcPercent);
+    
+    // Legacy support - update old metric elements if they still exist
     updateElement('deliveredPercent', `${deliveredPercent}%`);
     updateElement('deliveredCount', deliveredDone);
     updateElement('deliveredTotal', deliveredTotal);
-    
-    // Naming Compliance
     updateElement('namingCompliancePercent', `${namingPercent}%`);
     updateElement('namingCompliantCount', namingCompliant);
     updateElement('namingTotalCount', namingTotal);
-    
-    // Title Block Compliance
     updateElement('titleBlockCompliancePercent', `${titleBlockPercent}%`);
     updateElement('titleBlockCompliantCount', titleBlockCompliant);
     updateElement('titleBlockTotalCount', titleBlockTotal);
-    
-    // Overall QC Score
     updateElement('overallQCPercent', `${qcPercent}%`);
     updateElement('qcApprovedCount', qcApproved);
     updateElement('qcTotalCount', qcTotal);
     
     console.log('📊 UI elements updated, now updating charts...');
     
-    // UPDATE CHARTS
+    // UPDATE SVG DONUT CHARTS
     
-    // Delivered Chart
-    if (window.deliveredChart) {
-        console.log('📊 Updating delivered chart:', [deliveredDone, deliveredToDo]);
-        // Ensure at least one segment is visible for empty data
-        const deliveredData = (deliveredDone + deliveredToDo === 0) 
-            ? [1, 0] // Show placeholder when no data
-            : [deliveredDone, deliveredToDo];
-        window.deliveredChart.data.datasets[0].data = deliveredData;
-        window.deliveredChart.update();
-    } else {
-        console.warn('📊 Delivered chart not found');
-    }
+    // Update delivered donut chart
+    updateDonutChart('deliveredChart', deliveredPercent);
+    console.log('📊 Updated delivered donut chart:', deliveredPercent + '%');
     
-    // Naming Compliance Chart
-    if (window.namingComplianceChart) {
-        console.log('📊 Updating naming chart:', [namingCompliant, namingNonCompliant]);
-        // Ensure at least one segment is visible for empty data
-        const namingData = (namingCompliant + namingNonCompliant === 0) 
-            ? [1, 0] // Show placeholder when no data
-            : [namingCompliant, namingNonCompliant];
-        window.namingComplianceChart.data.datasets[0].data = namingData;
-        window.namingComplianceChart.update();
-    } else {
-        console.warn('📊 Naming compliance chart not found');
-    }
+    // Update naming compliance donut chart
+    updateDonutChart('namingComplianceChart', namingPercent);
+    console.log('📊 Updated naming compliance donut chart:', namingPercent + '%');
     
-    // Title Block Compliance Chart
-    if (window.titleBlockComplianceChart) {
-        console.log('📊 Updating title block chart:', [titleBlockCompliant, titleBlockNonCompliant, titleBlockNotChecked]);
-        // Ensure at least one segment is visible for empty data
-        const titleBlockData = (titleBlockCompliant + titleBlockNonCompliant + titleBlockNotChecked === 0) 
-            ? [1, 0, 0] // Show placeholder when no data
-            : [titleBlockCompliant, titleBlockNonCompliant, titleBlockNotChecked];
-        window.titleBlockComplianceChart.data.datasets[0].data = titleBlockData;
-        window.titleBlockComplianceChart.update();
-    } else {
-        console.warn('📊 Title block compliance chart not found');
-    }
+    // Update title block compliance donut chart
+    updateDonutChart('titleBlockComplianceChart', titleBlockPercent);
+    console.log('📊 Updated title block compliance donut chart:', titleBlockPercent + '%');
     
-    // Overall QC Chart
-    if (window.overallQCChart) {
-        console.log('📊 Updating overall QC chart:', [qcApproved, qcApprovedWithComments, qcToBeReviewed]);
-        // Ensure at least one segment is visible for empty data
-        const qcData = (qcApproved + qcApprovedWithComments + qcToBeReviewed === 0) 
-            ? [1, 0, 0] // Show placeholder when no data
-            : [qcApproved, qcApprovedWithComments, qcToBeReviewed];
-        window.overallQCChart.data.datasets[0].data = qcData;
-        window.overallQCChart.update();
-    } else {
-        console.warn('📊 Overall QC chart not found');
-    }
+    // Update overall QC donut chart
+    updateDonutChart('overallQCChart', qcPercent);
+    console.log('📊 Updated overall QC donut chart:', qcPercent + '%');
     
     console.log('📊 Summary metrics update complete!');
 }
@@ -3665,8 +3642,31 @@ function updateElement(elementId, value) {
     }
 }
 
+// Helper function to update card value overlays
+function updateCardValue(canvasId, percentage) {
+    const canvasElement = document.getElementById(canvasId);
+    if (!canvasElement) return;
+    
+    const container = canvasElement.parentElement;
+    const valueOverlay = container.valueOverlay || container.querySelector('.value');
+    
+    if (valueOverlay) {
+        valueOverlay.textContent = percentage + '%';
+        // Update color based on percentage
+        const color = getColorForPercentage(percentage);
+        valueOverlay.style.color = color;
+        console.log(`Updated ${canvasId} value to ${percentage}% with color ${color}`);
+    } else {
+        console.warn(`Value overlay not found for ${canvasId}`);
+    }
+}
+
 function updateMetricColor(elementId, colorClass) {
     const element = document.getElementById(elementId);
+    if (!element) {
+        console.warn(`⚠️ Element with ID "${elementId}" not found for color update`);
+        return;
+    }
     element.className = `metric-value ${colorClass}`;
 }
 
@@ -3915,263 +3915,139 @@ function getStatusClass(status) {
     return 'warning';
 }
 
-// Chart Functions
+// Chart Functions - SVG Donut Implementation
 function initializeCharts() {
-    // Initialize the four summary charts
-    createDeliveredChart();
-    createNamingComplianceChart();
-    createTitleBlockComplianceChart();
-    createOverallQCChart();
+    // Initialize the four summary charts with SVG donuts
+    createSVGDonut('deliveredChart', 0, '#10b981');
+    createSVGDonut('namingComplianceChart', 0, '#3b82f6');
+    createSVGDonut('titleBlockComplianceChart', 0, '#f59e0b');
+    createSVGDonut('overallQCChart', 0, '#8b5cf6');
 }
 
-function createDeliveredChart() {
-    const ctx = document.getElementById('deliveredChart').getContext('2d');
-    window.deliveredChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Done', 'To Do'],
-            datasets: [{
-                data: [0, 1], // Start with minimal placeholder data
-                backgroundColor: ['#10b981', '#e5e7eb'],
-                borderColor: ['#10b981', '#d1d5db'],
-                borderWidth: 2,
-                cutout: '60%'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { 
-                legend: { display: false },
-                tooltip: {
-                    enabled: true,
-                    callbacks: {
-                        label: function(context) {
-                            const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
-                            const percentage = total > 0 ? Math.round((context.parsed / total) * 100) : 0;
-                            return `${context.label}: ${context.parsed} (${percentage}%)`;
-                        }
-                    }
-                }
-            },
-            elements: {
-                arc: {
-                    borderWidth: 2
-                }
-            }
-        }
-    });
+function createSVGDonut(canvasId, percentage, color) {
+    const canvasElement = document.getElementById(canvasId);
+    if (!canvasElement) {
+        console.warn(`Canvas element ${canvasId} not found`);
+        return;
+    }
+    
+    const container = canvasElement.parentElement;
+    const card = container.closest('.card') || container.closest('.summary-card');
+    
+    if (!card) {
+        console.warn(`Card container not found for ${canvasId}`);
+        return;
+    }
+    
+    // Remove the canvas and create SVG donut structure
+    canvasElement.style.display = 'none';
+    
+    // Always create a new value overlay (not looking for existing one)
+    const valueOverlay = document.createElement('div');
+    valueOverlay.className = 'value';
+    valueOverlay.textContent = percentage + '%';
+    
+    // Position it absolutely within the chart container
+    container.style.position = 'relative';
+    container.appendChild(valueOverlay);
+    
+    console.log(`Created value overlay for ${canvasId}:`, valueOverlay);
+    
+    // Create donut container if it doesn't exist
+    let donutContainer = container.querySelector('.donut');
+    if (!donutContainer) {
+        donutContainer = document.createElement('div');
+        donutContainer.className = 'donut';
+        container.appendChild(donutContainer);
+    }
+    
+    const svg = createDonutSVG(percentage, color);
+    donutContainer.appendChild(svg);
+    
+    // Store references for updates
+    container.donutSVG = svg;
+    container.valueOverlay = valueOverlay;
+    
+    console.log(`SVG donut created for ${canvasId} with ${percentage}%`);
 }
 
-function createNamingComplianceChart() {
-    const ctx = document.getElementById('namingComplianceChart').getContext('2d');
-    window.namingComplianceChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Compliant', 'Non-Compliant'],
-            datasets: [{
-                data: [0, 1], // Start with minimal placeholder data
-                backgroundColor: ['#3b82f6', '#e5e7eb'],
-                borderColor: ['#3b82f6', '#d1d5db'],
-                borderWidth: 2,
-                cutout: '60%'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { 
-                legend: { display: false },
-                tooltip: {
-                    enabled: true,
-                    callbacks: {
-                        label: function(context) {
-                            const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
-                            const percentage = total > 0 ? Math.round((context.parsed / total) * 100) : 0;
-                            return `${context.label}: ${context.parsed} (${percentage}%)`;
-                        }
-                    }
-                }
-            },
-            elements: {
-                arc: {
-                    borderWidth: 2
-                }
-            }
-        }
-    });
+function createDonutSVG(percentage, color) {
+    const radius = 36;
+    const strokeWidth = 12;
+    const normalizedRadius = radius - strokeWidth * 0.5;
+    const circumference = normalizedRadius * 2 * Math.PI;
+    const strokeDasharray = circumference + ' ' + circumference;
+    const strokeDashoffset = circumference - (percentage / 100) * circumference;
+    
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '80');
+    svg.setAttribute('height', '80');
+    
+    // Background circle
+    const bgCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    bgCircle.setAttribute('stroke', '#e5e7eb');
+    bgCircle.setAttribute('fill', 'transparent');
+    bgCircle.setAttribute('stroke-width', strokeWidth);
+    bgCircle.setAttribute('r', normalizedRadius);
+    bgCircle.setAttribute('cx', '40');
+    bgCircle.setAttribute('cy', '40');
+    
+    // Progress circle
+    const progressCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    progressCircle.setAttribute('stroke', color);
+    progressCircle.setAttribute('fill', 'transparent');
+    progressCircle.setAttribute('stroke-width', strokeWidth);
+    progressCircle.setAttribute('stroke-dasharray', strokeDasharray);
+    progressCircle.setAttribute('stroke-dashoffset', strokeDashoffset);
+    progressCircle.setAttribute('stroke-linecap', 'round');
+    progressCircle.setAttribute('r', normalizedRadius);
+    progressCircle.setAttribute('cx', '40');
+    progressCircle.setAttribute('cy', '40');
+    
+    svg.appendChild(bgCircle);
+    svg.appendChild(progressCircle);
+    
+    return svg;
 }
 
-function createTitleBlockComplianceChart() {
-    const ctx = document.getElementById('titleBlockComplianceChart').getContext('2d');
-    window.titleBlockComplianceChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Compliant', 'Non-Compliant', 'Not Checked'],
-            datasets: [{
-                data: [0, 0, 1], // Start with minimal placeholder data
-                backgroundColor: ['#8b5cf6', '#ef4444', '#f59e0b'],
-                borderColor: ['#8b5cf6', '#ef4444', '#f59e0b'],
-                borderWidth: 2,
-                cutout: '60%'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { 
-                legend: { display: false },
-                tooltip: {
-                    enabled: true,
-                    callbacks: {
-                        label: function(context) {
-                            const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
-                            const percentage = total > 0 ? Math.round((context.parsed / total) * 100) : 0;
-                            return `${context.label}: ${context.parsed} (${percentage}%)`;
-                        }
-                    }
-                }
-            },
-            elements: {
-                arc: {
-                    borderWidth: 2
-                }
-            }
-        }
-    });
+function updateDonutChart(canvasId, percentage) {
+    const canvasElement = document.getElementById(canvasId);
+    if (!canvasElement) return;
+    
+    const container = canvasElement.parentElement;
+    const svg = container.donutSVG;
+    const valueOverlay = container.valueOverlay;
+    
+    if (!svg || !valueOverlay) return;
+    
+    // Update the value text
+    valueOverlay.textContent = percentage + '%';
+    
+    // Update the SVG progress circle
+    const progressCircle = svg.querySelector('circle:last-child');
+    if (progressCircle) {
+        const radius = 36;
+        const strokeWidth = 12;
+        const normalizedRadius = radius - strokeWidth * 0.5;
+        const circumference = normalizedRadius * 2 * Math.PI;
+        const strokeDashoffset = circumference - (percentage / 100) * circumference;
+        
+        progressCircle.setAttribute('stroke-dashoffset', strokeDashoffset);
+        
+        // Update color based on percentage
+        const color = getColorForPercentage(percentage);
+        progressCircle.setAttribute('stroke', color);
+        valueOverlay.style.color = color;
+    }
 }
 
-function createOverallQCChart() {
-    const ctx = document.getElementById('overallQCChart').getContext('2d');
-    window.overallQCChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Approved', 'Approved with Comments', 'To Be Reviewed'],
-            datasets: [{
-                data: [0, 0, 1], // Start with minimal placeholder data
-                backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
-                borderColor: ['#10b981', '#f59e0b', '#ef4444'],
-                borderWidth: 2,
-                cutout: '60%'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { 
-                legend: { display: false },
-                tooltip: {
-                    enabled: true,
-                    callbacks: {
-                        label: function(context) {
-                            const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
-                            const percentage = total > 0 ? Math.round((context.parsed / total) * 100) : 0;
-                            return `${context.label}: ${context.parsed} (${percentage}%)`;
-                        }
-                    }
-                }
-            },
-            elements: {
-                arc: {
-                    borderWidth: 2
-                }
-            }
-        }
-    });
+function getColorForPercentage(percentage) {
+    if (percentage >= 80) return '#10b981'; // Green
+    if (percentage >= 60) return '#f97316'; // Orange
+    return '#ef4444'; // Red
 }
 
-function createStatusDistributionChart() {
-    const ctx = document.getElementById('statusDistributionChart').getContext('2d');
-    window.statusDistributionChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Critical', 'Review', 'Approved'],
-            datasets: [{
-                data: [0, 0, 0],
-                backgroundColor: [
-                    '#ef4444', // Critical - Red
-                    '#f59e0b', // Review - Orange
-                    '#10b981'  // Approved - Green
-                ],
-                borderWidth: 0,
-                cutout: '65%'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const label = context.label || '';
-                            const value = context.parsed || 0;
-                            const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
-                            const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                            return `${label}: ${value} (${percentage}%)`;
-                        }
-                    }
-                }
-            }
-        }
-    });
-}
-
-function createComplianceChart() {
-    const ctx = document.getElementById('complianceChart').getContext('2d');
-    window.complianceChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Complete', 'Missing', 'Extra'],
-            datasets: [{
-                data: [0, 0, 0],
-                backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            cutout: '50%',
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { 
-                        fontSize: 9,
-                        padding: 8,
-                        boxWidth: 12
-                    }
-                }
-            },
-            layout: {
-                padding: 0
-            }
-        }
-    });
-}
-
-function createProgressChart(canvasId) {
-    const ctx = document.getElementById(canvasId).getContext('2d');
-    window[canvasId] = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            datasets: [{
-                data: [0, 100],
-                backgroundColor: ['#3b82f6', '#e5e7eb'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            cutout: '70%',
-            plugins: { legend: { display: false } }
-        }
-    });
-}
+// Legacy Chart.js functions removed - using SVG donuts instead
 
 function updateCharts(drawingResults, namingResults, qaqcResults) {
     console.log('📊 === UPDATING CHARTS ===');
@@ -4524,18 +4400,41 @@ function switchTab(tabName) {
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    
+    const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
+    if (!activeTab) {
+        console.warn(`⚠️ Tab button with data-tab="${tabName}" not found`);
+        return;
+    }
+    activeTab.classList.add('active');
     
     // Update tab content
     document.querySelectorAll('.tab-content').forEach(content => {
         content.style.display = 'none';
     });
-    document.getElementById(`${tabName}-content`).style.display = 'block';
+    
+    const tabContent = document.getElementById(`${tabName}-content`);
+    if (!tabContent) {
+        console.warn(`⚠️ Tab content "${tabName}-content" not found`);
+        return;
+    }
+    tabContent.style.display = 'block';
 }
 
 function handleSearch() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const searchInput = document.getElementById('searchInput');
+    if (!searchInput) {
+        console.warn('⚠️ searchInput element not found');
+        return;
+    }
+    
+    const searchTerm = searchInput.value.toLowerCase();
     const activeTab = document.querySelector('.tab-content[style*="block"], .tab-content:not([style*="none"])');
+    if (!activeTab) {
+        console.warn('⚠️ No active tab content found');
+        return;
+    }
+    
     const rows = activeTab.querySelectorAll('tbody tr');
     
     rows.forEach(row => {
