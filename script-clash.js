@@ -2232,6 +2232,89 @@ function verifyCommentRestoration() {
     return { verified: verifiedCount, errors: errorCount };
 }
 
+// Helper function to create "Not verified" results when data is missing
+function createNotVerifiedResults(files, type) {
+    console.log(`Creating "Not verified" results for ${type} with ${files.length} files`);
+    
+    if (files.length === 0) {
+        // Return a single "Not verified" entry when no files are available
+        switch (type) {
+            case 'drawing':
+                return [{
+                    excelName: 'No data available',
+                    matchedFile: 'Not verified',
+                    status: 'Not verified'
+                }];
+            case 'naming':
+                return [{
+                    folderPath: 'No data available',
+                    fileName: 'Not verified',
+                    highlightedFileName: 'Not verified',
+                    status: 'Not verified',
+                    details: 'No files uploaded for validation',
+                    hasErrors: false
+                }];
+            case 'qaqc':
+                return [{
+                    sheetNumber: 'Not verified',
+                    sheetName: 'Not verified',
+                    fileName: 'Not verified',
+                    revCode: 'Not verified',
+                    revDate: 'Not verified',
+                    revDescription: 'Not verified',
+                    suitability: 'Not verified',
+                    stage: 'Not verified',
+                    namingStatus: 'Not verified',
+                    deliveryStatus: 'Not verified',
+                    comment: '',
+                    titleBlockStatus: 'Not verified',
+                    complianceStatus: 'Not verified'
+                }];
+            default:
+                return [];
+        }
+    }
+    
+    // Return "Not verified" for each file when some files exist but data source is missing
+    return files.map(file => {
+        switch (type) {
+            case 'drawing':
+                return {
+                    excelName: 'Not verified',
+                    matchedFile: file.name,
+                    status: 'Not verified'
+                };
+            case 'naming':
+                return {
+                    folderPath: extractFolderPath(file),
+                    fileName: file.name,
+                    highlightedFileName: file.name,
+                    status: 'Not verified',
+                    details: 'No naming rules loaded for validation',
+                    hasErrors: false
+                };
+            case 'qaqc':
+                return {
+                    sheetNumber: 'Not verified',
+                    sheetName: 'Not verified',
+                    fileName: file.name,
+                    revCode: 'Not verified',
+                    revDate: 'Not verified',
+                    revDescription: 'Not verified',
+                    suitability: 'Not verified',
+                    stage: 'Not verified',
+                    namingStatus: 'Not verified',
+                    deliveryStatus: 'Not verified',
+                    comment: '',
+                    titleBlockStatus: 'Not verified',
+                    complianceStatus: 'Not verified'
+                };
+            default:
+                return {};
+        }
+    });
+}
+
 // Main Processing Function
 async function runAllChecks() {
     console.log('🚀 === RUN ALL CHECKS INITIATED ===');
@@ -2247,36 +2330,51 @@ async function runAllChecks() {
     
     showNotification('Running quality checks...', 'info');
     
-    // Enhanced validation with more detailed feedback
-    if (!fileResultsFromFolder || fileResultsFromFolder.length === 0) {
-        console.log('❌ No folder files available');
-        showNotification('❌ Please upload folder files first', 'warning');
+    // Enhanced validation with more permissive checks - allow running with partial data
+    const hasFiles = fileResultsFromFolder && fileResultsFromFolder.length > 0;
+    const hasExcel = fileNamesFromExcel && fileNamesFromExcel.length > 0;
+    const hasTitleBlocks = titleBlockData && titleBlockData.length > 0;
+    
+    if (!hasFiles && !hasExcel && !hasTitleBlocks) {
+        console.log('❌ No data available at all');
+        showNotification('❌ Please upload at least one data source (folder files, drawing register, or title blocks)', 'warning');
         return;
     }
     
-    if (!fileNamesFromExcel || fileNamesFromExcel.length === 0) {
-        console.log('❌ No Excel file names available');
-        showNotification('❌ Please upload and configure Drawing Register file', 'warning');
-        return;
+    // Show warnings for missing data but continue
+    const warnings = [];
+    if (!hasFiles) warnings.push('No folder files uploaded - delivery status will show "Not verified"');
+    if (!hasExcel) warnings.push('No drawing register configured - drawing list will show "Not verified"');
+    if (!hasTitleBlocks) warnings.push('No title blocks uploaded - title block validation will show "Not verified"');
+    
+    if (warnings.length > 0) {
+        console.log('⚠️ Running with partial data:', warnings);
+        showNotification(`⚠️ Running with partial data: ${warnings.length} missing data source(s)`, 'warning');
     }
     
-    console.log('✅ Data validation passed, proceeding with checks...');
-    console.log('📁 Sample folder files:', fileResultsFromFolder.slice(0, 3).map(f => f.name));
-    console.log('📋 Sample Excel names:', fileNamesFromExcel.slice(0, 3));
+    console.log('✅ Proceeding with available data...');
+    if (hasFiles) console.log('📁 Sample folder files:', fileResultsFromFolder.slice(0, 3).map(f => f.name));
+    if (hasExcel) console.log('📋 Sample Excel names:', fileNamesFromExcel.slice(0, 3));
 
-    // Apply current filter
-    const filteredFiles = applyFileFilter(fileResultsFromFolder);
+    // Apply current filter only if we have files
+    const filteredFiles = hasFiles ? applyFileFilter(fileResultsFromFolder) : [];
     console.log(`🔍 Applied filter, ${filteredFiles.length} files after filtering`);
     
-    // Run all checks with error handling
+    // Run all checks with error handling and handle missing data gracefully
     try {
-        const drawingListResults = compareDrawingList(fileNamesFromExcel, filteredFiles);
+        const drawingListResults = hasExcel && hasFiles ? 
+            compareDrawingList(fileNamesFromExcel, filteredFiles) : 
+            createNotVerifiedResults(filteredFiles, 'drawing');
         console.log('✅ Drawing List comparison completed:', drawingListResults.length, 'results');
         
-        const namingResults = checkNamingCompliance(filteredFiles);
+        const namingResults = hasFiles ? 
+            checkNamingCompliance(filteredFiles) : 
+            createNotVerifiedResults([], 'naming');
         console.log('✅ Naming compliance check completed:', namingResults.length, 'results');
         
-        const qaqcResults = checkQAQC(filteredFiles);
+        const qaqcResults = hasFiles ? 
+            checkQAQC(filteredFiles) : 
+            createNotVerifiedResults([], 'qaqc');
         console.log('✅ QA-QC check completed:', qaqcResults.length, 'results');
         
         // Update UI with enhanced logging
@@ -2592,7 +2690,18 @@ function checkQAQC(files) {
         console.log(`Sheet number extracted: "${sheetNumber}"`);
         console.log(`File name without ext: "${fileNameWithoutExt}"`);
         
+        // Determine naming status from naming results
+        let namingStatus = 'Not verified';
+        if (namingRulesData && namingRulesData.Sheets && namingRulesData.Sheets.length > 0) {
+            const namingAnalysis = analyzeFileNameAgainstRules(file.name);
+            namingStatus = namingAnalysis.compliance === 'Ok' ? 'Compliant' : 'Non-compliant';
+        }
+        
+        // Determine delivery status - file exists in folder so it's delivered
+        const deliveryStatus = 'Delivered';
+        
         let titleRecord = null;
+        let titleBlockStatus = 'Not verified';
         
         if (titleBlockData && titleBlockData.length > 0) {
             console.log('Available title block records:');
@@ -2687,6 +2796,12 @@ function checkQAQC(files) {
                     console.log(`❌ Manual comment found for ${file.name}: "${userComment.trim()}" - failing title block`);
                 }
                 
+                // Determine title block status
+                titleBlockStatus = issues.length === 0 ? 'Compliant' : 'Non-compliant';
+                
+                // Calculate compliance status based on all three criteria
+                const complianceStatus = calculateComplianceStatus(namingStatus, deliveryStatus, titleBlockStatus);
+                
                 return {
                     sheetNumber: titleRecord.sheetNumber || 'N/A',
                     sheetName: titleRecord.sheetName || 'N/A',
@@ -2696,11 +2811,18 @@ function checkQAQC(files) {
                     revDescription: actualValues.revisionDescription,
                     suitability: actualValues.suitabilityCode,
                     stage: actualValues.stageDescription,
+                    namingStatus: namingStatus,
+                    deliveryStatus: deliveryStatus,
+                    comment: userComment || '',
+                    titleBlockStatus: titleBlockStatus,
+                    complianceStatus: complianceStatus,
                     result: issues.length === 0 ? 'PASS' : 'FAIL',
                     issues: issues.length > 0 ? issues.join('; ') : 'None'
                 };
             } else {
                 console.log('❌ No matching title record found');
+                
+                titleBlockStatus = 'Not verified';
                 
                 // Check for manual comment even when no title block data
                 const userComment = commentsData[file.name];
@@ -2709,6 +2831,9 @@ function checkQAQC(files) {
                     failureReason += `; Manual comment: ${userComment.trim()}`;
                     console.log(`❌ Manual comment found for ${file.name}: "${userComment.trim()}"`);
                 }
+                
+                // Calculate compliance status based on all three criteria
+                const complianceStatus = calculateComplianceStatus(namingStatus, deliveryStatus, titleBlockStatus);
                 
                 return {
                     sheetNumber: sheetNumber || 'N/A',
@@ -2719,12 +2844,19 @@ function checkQAQC(files) {
                     revDescription: 'N/A',
                     suitability: 'N/A',
                     stage: 'N/A',
+                    namingStatus: namingStatus,
+                    deliveryStatus: deliveryStatus,
+                    comment: userComment || '',
+                    titleBlockStatus: titleBlockStatus,
+                    complianceStatus: complianceStatus,
                     result: 'FAIL',
                     issues: failureReason
                 };
             }
         } else {
             console.log('❌ No title block data loaded');
+            
+            titleBlockStatus = 'Not verified';
             
             // Check for manual comment even when no title block data loaded
             const userComment = commentsData[file.name];
@@ -2733,6 +2865,9 @@ function checkQAQC(files) {
                 failureReason += `; Manual comment: ${userComment.trim()}`;
                 console.log(`❌ Manual comment found for ${file.name}: "${userComment.trim()}"`);
             }
+            
+            // Calculate compliance status based on all three criteria
+            const complianceStatus = calculateComplianceStatus(namingStatus, deliveryStatus, titleBlockStatus);
             
             return {
                 sheetNumber: sheetNumber || 'N/A',
@@ -2743,6 +2878,11 @@ function checkQAQC(files) {
                 revDescription: 'N/A',
                 suitability: 'N/A',
                 stage: 'N/A',
+                namingStatus: namingStatus,
+                deliveryStatus: deliveryStatus,
+                comment: userComment || '',
+                titleBlockStatus: titleBlockStatus,
+                complianceStatus: complianceStatus,
                 result: 'FAIL',
                 issues: failureReason
             };
@@ -2750,17 +2890,124 @@ function checkQAQC(files) {
     });
 }
 
+// Helper function to calculate compliance status based on naming, delivery, and title block status
+function calculateComplianceStatus(namingStatus, deliveryStatus, titleBlockStatus) {
+    console.log(`Calculating compliance status: naming=${namingStatus}, delivery=${deliveryStatus}, titleBlock=${titleBlockStatus}`);
+    
+    // Count negative results (Non-compliant status)
+    const negativeResults = [namingStatus, deliveryStatus, titleBlockStatus]
+        .filter(status => status === 'Non-compliant').length;
+    
+    // Count not verified results
+    const notVerifiedResults = [namingStatus, deliveryStatus, titleBlockStatus]
+        .filter(status => status === 'Not verified').length;
+    
+    // If any negative result -> To be Reviewed
+    if (negativeResults > 0) {
+        console.log(`Compliance: To be Reviewed (${negativeResults} negative results)`);
+        return 'To be Reviewed';
+    }
+    
+    // If something not verified -> Approved with comments
+    if (notVerifiedResults > 0) {
+        console.log(`Compliance: Approved with comments (${notVerifiedResults} not verified)`);
+        return 'Approved with comments';
+    }
+    
+    // All positive -> Approved
+    console.log('Compliance: Approved (all criteria compliant)');
+    return 'Approved';
+}
+
+// EMERGENCY TOOLS - Call these manually if comments disappear
+function emergencyCommentRescue() {
+    console.log('🚨 === EMERGENCY COMMENT RESCUE ===');
+    console.log('🚨 Current commentsData:', commentsData);
+    
+    const commentInputs = document.querySelectorAll('.comment-input');
+    console.log(`🚨 Found ${commentInputs.length} comment inputs`);
+    
+    let rescuedCount = 0;
+    Object.keys(commentsData).forEach(fileName => {
+        const comment = commentsData[fileName];
+        const input = Array.from(commentInputs).find(inp => {
+            const dataFileName = inp.getAttribute('data-file-name');
+            const rowFileName = inp.closest('tr')?.cells[2]?.textContent?.trim();
+            return dataFileName === fileName || rowFileName === fileName;
+        });
+        
+        if (input && comment && comment.trim()) {
+            console.log(`🚨 Emergency rescue for ${fileName}: "${comment}"`);
+            input.value = comment;
+            input.style.backgroundColor = '#ffeb3b'; // Highlight rescued comments
+            rescuedCount++;
+        }
+    });
+    
+    console.log(`🚨 Emergency rescue complete: ${rescuedCount} comments rescued`);
+    alert(`Emergency rescue complete: ${rescuedCount} comments rescued and highlighted in yellow`);
+    return rescuedCount;
+}
+
+function monitorComments() {
+    console.log('👁️ === COMMENT MONITORING STARTED ===');
+    
+    setInterval(() => {
+        const commentInputs = document.querySelectorAll('.comment-input');
+        const currentValues = {};
+        
+        commentInputs.forEach(input => {
+            let fileName = input.getAttribute('data-file-name');
+            if (!fileName) {
+                const row = input.closest('tr');
+                fileName = row?.cells[2]?.textContent?.trim();
+            }
+            if (fileName) {
+                currentValues[fileName] = input.value;
+            }
+        });
+        
+        // Check for discrepancies
+        let discrepancies = 0;
+        Object.keys(commentsData).forEach(fileName => {
+            if (commentsData[fileName] && currentValues[fileName] !== commentsData[fileName]) {
+                console.log(`👁️ Discrepancy detected for ${fileName}: stored="${commentsData[fileName]}", current="${currentValues[fileName]}"`);
+                discrepancies++;
+            }
+        });
+        
+        if (discrepancies > 0) {
+            console.log(`👁️ WARNING: ${discrepancies} comment discrepancies detected!`);
+        }
+    }, 5000); // Check every 5 seconds
+    
+    console.log('👁️ Comment monitoring active (checks every 5 seconds)');
+}
+
 // UI Update Functions
 function updateSummaryMetrics(drawingResults, namingResults, qaqcResults) {
-    const totalFiles = fileResultsFromFolder.length;
-    const missingFiles = drawingResults.filter(r => r.status === 'To Do').length;
-    const compliantFiles = namingResults.filter(r => r.status === 'Ok').length;
-    const overallScore = Math.round(((compliantFiles / totalFiles) * 100));
+    // Handle cases where data might be missing or partial
+    const totalFiles = fileResultsFromFolder ? fileResultsFromFolder.length : 
+                      (drawingResults && drawingResults.length > 0 ? drawingResults.length : 0);
     
-    document.getElementById('totalFiles').textContent = totalFiles;
-    document.getElementById('missingFiles').textContent = missingFiles;
-    document.getElementById('compliantFiles').textContent = compliantFiles;
-    document.getElementById('overallScore').textContent = `${overallScore}%`;
+    const missingFiles = drawingResults ? 
+        drawingResults.filter(r => r.status === 'To Do' || r.status === 'Not verified').length : 0;
+    
+    const compliantFiles = namingResults ? 
+        namingResults.filter(r => r.status === 'Ok' || r.status === 'Compliant').length : 0;
+    
+    const overallScore = totalFiles > 0 ? Math.round(((compliantFiles / totalFiles) * 100)) : 0;
+    
+    // Update UI elements safely
+    const totalFilesEl = document.getElementById('totalFiles');
+    const missingFilesEl = document.getElementById('missingFiles');
+    const compliantFilesEl = document.getElementById('compliantFiles');
+    const overallScoreEl = document.getElementById('overallScore');
+    
+    if (totalFilesEl) totalFilesEl.textContent = totalFiles;
+    if (missingFilesEl) missingFilesEl.textContent = missingFiles;
+    if (compliantFilesEl) compliantFilesEl.textContent = compliantFiles;
+    if (overallScoreEl) overallScoreEl.textContent = `${overallScore}%`;
     
     // Update metric card colors
     updateMetricColor('missingFiles', missingFiles === 0 ? 'success' : 'error');
@@ -2837,16 +3084,24 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
             const hasRevisionError = result.issues && result.issues.includes('Rev Code:');
             const revCodeClass = hasRevisionError ? 'revision-error' : '';
             
-            // Get naming status from naming checker results
-            const namingResult = namingResults.find(nr => nr.fileName === result.fileName);
-            const namingStatus = namingResult ? namingResult.status : 'Unknown';
-            const namingStatusClass = namingStatus === 'Ok' ? 'success' : 
-                                    namingStatus === 'Warning' ? 'warning' : 'error';
+            // Use the calculated statuses from the QA-QC results
+            const namingStatus = result.namingStatus || 'Not verified';
+            const deliveryStatus = result.deliveryStatus || 'Not verified';
+            const titleBlockStatus = result.titleBlockStatus || 'Not verified';
+            const complianceStatus = result.complianceStatus || 'Not verified';
             
-            const deliveryStatus = 'Delivered'; // Since file exists in folder
+            // Apply status classes
+            const namingStatusClass = namingStatus === 'Compliant' ? 'success' : 
+                                    namingStatus === 'Non-compliant' ? 'error' : 'warning';
+            const deliveryStatusClass = deliveryStatus === 'Delivered' ? 'success' : 
+                                      deliveryStatus === 'Missing' ? 'error' : 'warning';
+            const titleBlockStatusClass = titleBlockStatus === 'Compliant' ? 'success' : 
+                                         titleBlockStatus === 'Non-compliant' ? 'error' : 'warning';
+            const complianceStatusClass = complianceStatus === 'Approved' ? 'success' : 
+                                        complianceStatus === 'Approved with comments' ? 'warning' : 'error';
             
             // Get existing comment for this file
-            const existingComment = commentsData[result.fileName] || '';
+            const existingComment = commentsData[result.fileName] || result.comment || '';
             console.log(`💬 Comment preservation for ${result.fileName}:`, {
                 hasComment: !!existingComment,
                 commentValue: existingComment,
@@ -2864,10 +3119,10 @@ function updateResultsTables(drawingResults, namingResults, qaqcResults) {
                     <td>${result.suitability || 'N/A'}</td>
                     <td>${result.stage || 'N/A'}</td>
                     <td><span class="status-badge ${namingStatusClass}">${namingStatus}</span></td>
-                    <td><span class="status-badge success">${deliveryStatus}</span></td>
+                    <td><span class="status-badge ${deliveryStatusClass}">${deliveryStatus}</span></td>
                     <td><input type="text" class="comment-input" placeholder="Add comment..." value="${existingComment}" data-file-name="${result.fileName}"></td>
-                    <td><span class="status-badge ${result.result === 'PASS' ? 'success' : result.result === 'FAIL' ? 'error' : 'warning'}">${result.result || 'Unknown'}</span></td>
-                    <td>${result.issues || 'N/A'}</td>
+                    <td><span class="status-badge ${titleBlockStatusClass}">${titleBlockStatus}</span></td>
+                    <td><span class="status-badge ${complianceStatusClass}">${complianceStatus}</span></td>
                 </tr>
             `;
         }).join('');
