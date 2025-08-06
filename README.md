@@ -51,15 +51,37 @@ A comprehensive quality control application for engineering drawings that combin
 
 ```
 deliverables-qc/
-├── index.html          # Main application interface
-├── script.js           # Core application logic
-├── styles.css          # Complete styling
-├── README.md           # This documentation
-└── legacy/             # Original legacy applications
+├── index.html              # Main application interface
+├── script-clash.js         # Core application logic (ACTIVE)
+├── styles-clash.css        # Complete styling (ACTIVE)
+├── README.md               # This documentation
+├── table-diagnostic.js     # Debugging utility
+├── test-table-fix.html     # Testing interface
+├── CHART_FIXES_SUMMARY.md  # Development notes
+├── FIX-INSTRUCTIONS.md     # Development notes
+└── legacy/                 # Original legacy applications
     ├── check_file_naming/
     ├── Check-drawing-list/
     └── Deliverables_QA_QC/
 ```
+
+## Current Active Files
+
+**Main Application:**
+- `index.html` - Main interface
+- `script-clash.js` - Core functionality (211KB)
+- `styles-clash.css` - Styling (19KB)
+
+**Legacy Applications:**
+- `legacy/check_file_naming/` - Original naming convention checker
+- `legacy/Check-drawing-list/` - Original drawing list checker  
+- `legacy/Deliverables_QA_QC/` - Original QA-QC validator
+
+**Development Files:**
+- `script.js` - Previous version (deprecated)
+- `styles.css` - Previous version (deprecated)
+- `styles-modern.css` - Alternative styling (deprecated)
+- `styles_backup.css` - Backup styling (deprecated)
 
 ## Technical Features
 
@@ -96,6 +118,7 @@ deliverables-qc/
 ## Dependencies
 
 - **XLSX.js**: Excel file processing
+- **Chart.js**: Data visualization
 - **Native Web APIs**: File System Access, Blob, URL
 - **ES6+ Features**: Async/await, Promises, Classes
 
@@ -121,3 +144,9 @@ All legacy algorithms have been preserved and enhanced with modern features.
 - **No Server Dependencies**: Pure client-side application
 - **File System Access**: Secure browser APIs only
 - **Data Privacy**: No external data transmission
+
+## Known Issues
+
+- Legacy applications may have broken file references
+- Multiple CSS files exist (consider consolidation)
+- Large JavaScript bundle size (211KB) - consider optimization
